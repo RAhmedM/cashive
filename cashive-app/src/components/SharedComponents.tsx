@@ -502,6 +502,108 @@ interface TaskRowProps {
   estimatedTime?: string;
 }
 
+interface FeaturedOfferCardProps {
+  poster?: string;
+  icon?: string;
+  title: string;
+  requirement: string;
+  provider: string;
+  providerLogo?: string;
+  completions?: number;
+  reward: number;
+  rewardUSD: number;
+  onEarn?: () => void;
+}
+
+export function FeaturedOfferCard({
+  poster,
+  icon,
+  title,
+  requirement,
+  provider,
+  providerLogo,
+  completions,
+  reward,
+  rewardUSD,
+  onEarn,
+}: FeaturedOfferCardProps) {
+  return (
+    <div className="group overflow-hidden rounded-xl border border-border bg-bg-surface transition-all duration-150 hover:-translate-y-0.5 hover:border-accent-gold/30 hover:shadow-[0_10px_28px_rgba(245,166,35,0.10)]">
+      <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden border-b border-border bg-[radial-gradient(circle_at_top,rgba(245,166,35,0.16),transparent_65%),linear-gradient(180deg,#241E2C_0%,#1A1520_100%)]">
+        {poster ? (
+          <img
+            src={poster}
+            alt={title}
+            className="h-full w-full object-contain transition-transform duration-200 group-hover:scale-[1.02]"
+            loading="lazy"
+          />
+        ) : icon ? (
+          <div className="flex h-full w-full items-center justify-center p-6">
+            <img
+              src={icon}
+              alt={title}
+              className="h-full max-h-[140px] w-full object-contain transition-transform duration-200 group-hover:scale-[1.04]"
+              loading="lazy"
+            />
+          </div>
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-xl font-bold text-accent-gold">
+            {title}
+          </div>
+        )}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-bg-surface via-bg-surface/20 to-transparent" />
+      </div>
+
+      <div className="p-4">
+        <h3 className="truncate text-[15px] font-bold text-text-primary transition-colors group-hover:text-accent-gold">
+          {title}
+        </h3>
+        <p className="mt-1 truncate text-[13px] text-text-secondary">{requirement}</p>
+
+        <div className="mt-3 flex items-center gap-2 text-[11px] text-text-tertiary">
+          {providerLogo ? (
+            <img src={providerLogo} alt={provider} className="h-4 w-4 rounded-sm object-contain" loading="lazy" />
+          ) : null}
+          <span className="truncate">{provider}</span>
+        </div>
+
+        {typeof completions === "number" ? (
+          <p className="mt-1 text-xs text-text-tertiary">{completions.toLocaleString()} completions</p>
+        ) : null}
+
+        <div className="mt-4 flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <div className="inline-flex items-center gap-1.5 font-mono text-xl font-bold text-accent-gold">
+              <span className="inline-flex items-center gap-1.5">
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2C12 2 6 10 6 14.5C6 17.8137 8.68629 20.5 12 20.5C15.3137 20.5 18 17.8137 18 14.5C18 10 12 2 12 2Z" fill="url(#featuredOfferHoneyGradient)" stroke="#E8852D" strokeWidth="0.5" />
+                  <path d="M10 12C10 12 9 14 9 15.5C9 16.8807 10.1193 18 11.5 18" stroke="rgba(255,255,255,0.3)" strokeWidth="1" strokeLinecap="round" />
+                  <defs>
+                    <linearGradient id="featuredOfferHoneyGradient" x1="12" y1="2" x2="12" y2="20.5" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#FFBE42" />
+                      <stop offset="1" stopColor="#F5A623" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                {reward.toLocaleString()}
+              </span>
+            </div>
+            <p className="mt-0.5 text-[11px] text-text-tertiary">(≈ ${rewardUSD.toFixed(2)})</p>
+          </div>
+
+          <button
+            onClick={onEarn}
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-accent-gold px-3 py-2 text-xs font-semibold text-bg-deepest transition-all hover:bg-accent-gold-hover active:scale-95"
+          >
+            Earn
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const difficultyColors: Record<string, string> = {
   Easy: "text-success bg-success/10 border-success/20",
   Medium: "text-accent-gold bg-accent-gold/10 border-accent-gold/20",

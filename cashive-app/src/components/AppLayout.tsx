@@ -10,6 +10,11 @@ import { MessageSquare } from "lucide-react";
 
 const CHAT_STORAGE_KEY = "cashive-chat-open";
 
+export const AppLayoutContext = React.createContext({
+  chatOpen: false,
+  sidebarCollapsed: false,
+});
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
@@ -57,24 +62,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <LiveTicker />
       </div>
 
-      <main
-        className="min-h-screen pb-20 transition-all duration-300 lg:pb-8"
-        style={{
-          paddingTop: "calc(64px + 36px)", /* TopNav (64px) + LiveTicker (36px) */
-          marginLeft: "var(--sidebar-offset, 0px)",
-          marginRight: "var(--chat-offset, 0px)",
-        }}
-      >
-        <style>{`
-          @media (min-width: 1024px) {
-            main { --sidebar-offset: ${sidebarWidth}px; }
-          }
-          @media (min-width: 1280px) {
-            main { --chat-offset: ${chatWidth}px; }
-          }
-        `}</style>
-        <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-6 lg:px-8">{children}</div>
-      </main>
+      <AppLayoutContext.Provider value={{ chatOpen, sidebarCollapsed }}>
+        <main
+          className="min-h-screen pb-20 transition-all duration-300 lg:pb-8"
+          style={{
+            paddingTop: "calc(64px + 36px)",
+            marginLeft: "var(--sidebar-offset, 0px)",
+            marginRight: "var(--chat-offset, 0px)",
+          }}
+        >
+          <style>{`
+            @media (min-width: 1024px) {
+              main { --sidebar-offset: ${sidebarWidth}px; }
+            }
+            @media (min-width: 1280px) {
+              main { --chat-offset: ${chatWidth}px; }
+            }
+          `}</style>
+          <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-6 lg:px-8">{children}</div>
+        </main>
+      </AppLayoutContext.Provider>
 
       {!chatOpen ? (
         <>

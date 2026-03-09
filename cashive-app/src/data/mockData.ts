@@ -30,6 +30,22 @@ export function paymentImage(name: string): string {
   return `/payments/${name.toLowerCase().replace(/\s+/g, "-")}.svg`;
 }
 
+export function offerPosterImage(name: string): string | undefined {
+  const posterMap: Record<string, string> = {
+    "rise-of-kingdoms": "/offers/Rise-Of-Kingdoms.jpg",
+    "state-of-survival": "/offers/state_of_survival.jpg",
+    "raid-shadow-legends": "/offers/raid_shadow.jpg",
+    "coin-master": "/offers/coin_master.jpg",
+    "merge-dragons": "/offers/MergeDragons.png",
+  };
+
+  return posterMap[name.toLowerCase().replace(/\s+/g, "-")];
+}
+
+function honeyToUsd(amount: number): number {
+  return Number((amount / 1000).toFixed(2));
+}
+
 // ─── Featured Tasks ──────────────────────────────────────────────
 
 export const featuredTasks = [
@@ -87,6 +103,81 @@ export const featuredTasks = [
     difficulty: "Medium" as const,
     estimatedTime: "2-3 days",
     category: "Game",
+  },
+];
+
+export const homepageFeaturedOffers = [
+  {
+    id: 1,
+    title: "Rise of Kingdoms",
+    requirement: "Reach City Hall Level 15",
+    provider: "Lootably",
+    providerLogo: providerImage("lootably"),
+    poster: offerPosterImage("rise-of-kingdoms"),
+    icon: appImage("rise-of-kingdoms"),
+    reward: 7500,
+    rewardUSD: honeyToUsd(7500),
+    completions: 342,
+  },
+  {
+    id: 2,
+    title: "Solitaire Cash",
+    requirement: "Single Purchase of $20 or more",
+    provider: "Torox",
+    providerLogo: providerImage("torox"),
+    poster: undefined,
+    icon: appImage("solitaire-cash"),
+    reward: 4500,
+    rewardUSD: honeyToUsd(4500),
+    completions: 891,
+  },
+  {
+    id: 3,
+    title: "State of Survival: Zombie War",
+    requirement: "Reach Stronghold Level 10",
+    provider: "TyrAds",
+    providerLogo: providerImage("tyrads"),
+    poster: offerPosterImage("state-of-survival"),
+    icon: appImage("state-of-survival"),
+    reward: 3060,
+    rewardUSD: honeyToUsd(3060),
+    completions: 127,
+  },
+  {
+    id: 4,
+    title: "Raid: Shadow Legends",
+    requirement: "Reach Player Level 30",
+    provider: "AdGem",
+    providerLogo: providerImage("adgem"),
+    poster: offerPosterImage("raid-shadow-legends"),
+    icon: appImage("raid-shadow-legends"),
+    reward: 5200,
+    rewardUSD: honeyToUsd(5200),
+    completions: 214,
+  },
+  {
+    id: 5,
+    title: "Coin Master",
+    requirement: "Reach Village Level 8",
+    provider: "Torox",
+    providerLogo: providerImage("torox"),
+    poster: offerPosterImage("coin-master"),
+    icon: appImage("coin-master"),
+    reward: 1850,
+    rewardUSD: honeyToUsd(1850),
+    completions: 463,
+  },
+  {
+    id: 6,
+    title: "Merge Dragons",
+    requirement: "Complete Challenge 6",
+    provider: "RevU",
+    providerLogo: providerImage("revu"),
+    poster: offerPosterImage("merge-dragons"),
+    icon: appImage("merge-dragons"),
+    reward: 2100,
+    rewardUSD: honeyToUsd(2100),
+    completions: 178,
   },
 ];
 
