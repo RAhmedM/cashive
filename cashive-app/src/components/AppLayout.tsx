@@ -1,14 +1,30 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Sidebar from "./Sidebar";
 import TopNav from "./TopNav";
+import { ChatPanel, FloatingSupportButton } from "./Part3Components";
+import { chatMessages } from "@/data/mockData";
+import { MessageSquare } from "lucide-react";
+
+const CHAT_STORAGE_KEY = "cashive-chat-open";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const [chatOpen, setChatOpen] = React.useState(false);
 
-  const sidebarWidth = sidebarCollapsed ? 68 : 240;
+  React.useEffect(() => {
+    const saved = window.localStorage.getItem(CHAT_STORAGE_KEY);
+    if (saved === "true") setChatOpen(true);
+  }, []);
+
+  React.useEffect(() => {
+    window.localStorage.setItem(CHAT_STORAGE_KEY, String(chatOpen));
+  }, [chatOpen]);
+
+  const sidebarWidth = sidebarCollapsed ? 76 : 240;
+  const chatWidth = chatOpen ? 320 : 0;
 
   return (
     <div className="min-h-screen bg-bg-deepest honeycomb-bg relative">
@@ -16,27 +32,42 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         mobileOpen={mobileMenuOpen}
         onMobileClose={() => setMobileMenuOpen(false)}
         collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-      <TopNav
-        onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
-        sidebarWidth={sidebarWidth}
+        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
       />
 
-      {/* Main content area */}
+      <TopNav onMenuToggle={() => setMobileMenuOpen((v) => !v)} sidebarWidth={sidebarWidth} />
+
       <main
-        className="pt-16 pb-20 lg:pb-8 min-h-screen transition-all duration-300"
-        style={{ marginLeft: `var(--sidebar-offset, 0px)` }}
+        className="min-h-screen pb-20 pt-16 transition-all duration-300 lg:pb-8"
+        style={{
+          marginLeft: "var(--sidebar-offset, 0px)",
+          marginRight: "var(--chat-offset, 0px)",
+        }}
       >
         <style>{`
           @media (min-width: 1024px) {
             main { --sidebar-offset: ${sidebarWidth}px; }
           }
+          @media (min-width: 1280px) {
+            main { --chat-offset: ${chatWidth}px; }
+          }
         `}</style>
-        <div className="px-4 md:px-6 lg:px-8 py-6 max-w-[1400px] mx-auto">
-          {children}
-        </div>
+        <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-6 lg:px-8">{children}</div>
       </main>
+
+      {!chatOpen ? (
+        <button
+          type="button"
+          onClick={() => setChatOpen(true)}
+          className="fixed right-0 top-1/2 z-[41] hidden -translate-y-1/2 rounded-l-2xl border border-r-0 border-accent-gold/30 bg-accent-gold px-2 py-5 text-bg-deepest shadow-[0_8px_24px_rgba(245,166,35,0.28)] transition-transform hover:scale-[1.02] xl:flex xl:flex-col xl:items-center xl:gap-2"
+        >
+          <MessageSquare className="w-5 h-5" />
+          <span className="text-xs font-bold [writing-mode:vertical-rl] rotate-180">Chat</span>
+        </button>
+      ) : null}
+
+      <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} messages={chatMessages} />
+      <FloatingSupportButton />
     </div>
   );
 }

@@ -4,20 +4,17 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home,
-  Coins,
-  ClipboardList,
-  BarChart3,
-  Gift,
-  Trophy,
-  Users,
-  Package,
-  Swords,
-  Wallet,
-  Settings,
-  MessageCircle,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
+  Coins,
+  Gift,
+  Home,
+  MessageSquareMore,
+  Settings,
+  Trophy,
+  Users,
+  Wallet,
   X,
 } from "lucide-react";
 import { BeeIcon } from "./Icons";
@@ -26,15 +23,12 @@ const iconMap: Record<string, React.ElementType> = {
   Home,
   Coins,
   ClipboardList,
-  BarChart3,
-  Gift,
+  MessageSquareMore,
   Trophy,
-  Users,
-  Package,
-  Swords,
+  Gift,
   Wallet,
+  Users,
   Settings,
-  MessageCircle,
 };
 
 const navSections = [
@@ -44,25 +38,19 @@ const navSections = [
       { label: "Home", icon: "Home", href: "/" },
       { label: "Earn", icon: "Coins", href: "/earn" },
       { label: "Tasks", icon: "ClipboardList", href: "/tasks" },
-      { label: "Surveys", icon: "BarChart3", href: "/surveys" },
+      { label: "Surveys", icon: "MessageSquareMore", href: "/surveys" },
+    ],
+  },
+  {
+    section: "COMPETE",
+    items: [{ label: "Races", icon: "Trophy", href: "/races" }],
+  },
+  {
+    section: "REWARDS",
+    items: [
       { label: "Rewards", icon: "Gift", href: "/rewards" },
-      { label: "Races", icon: "Trophy", href: "/races" },
-      { label: "Referrals", icon: "Users", href: "/referrals" },
-    ],
-  },
-  {
-    section: "GAMES",
-    items: [
-      { label: "Boxes", icon: "Package", href: "/boxes" },
-      { label: "Battles", icon: "Swords", href: "/battles" },
-    ],
-  },
-  {
-    section: "ACCOUNT",
-    items: [
       { label: "Cashout", icon: "Wallet", href: "/cashout" },
-      { label: "Settings", icon: "Settings", href: "/settings" },
-      { label: "Support", icon: "MessageCircle", href: "/support" },
+      { label: "Referrals", icon: "Users", href: "/referrals" },
     ],
   },
 ];
@@ -74,152 +62,113 @@ interface SidebarProps {
   onToggleCollapse: () => void;
 }
 
-export default function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse }: SidebarProps) {
+export default function Sidebar({
+  mobileOpen,
+  onMobileClose,
+  collapsed,
+  onToggleCollapse,
+}: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <>
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
-          onClick={onMobileClose}
-        />
-      )}
+      {mobileOpen ? (
+        <div className="fixed inset-0 z-40 bg-black/60 lg:hidden" onClick={onMobileClose} />
+      ) : null}
 
       <aside
-        className={`
-          fixed top-0 left-0 h-full z-50
-          bg-bg-surface border-r border-border
-          transition-all duration-300 ease-in-out
-          flex flex-col
-          ${collapsed ? "w-[68px]" : "w-[240px]"}
-          ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0
-        `}
+        className={`fixed left-0 top-0 z-50 flex h-full flex-col border-r border-border bg-bg-surface transition-all duration-300 ease-in-out ${collapsed ? "w-[76px]" : "w-[240px]"} ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
-        {/* Logo */}
-        <div className="flex items-center justify-between px-4 h-16 border-b border-border">
-          <Link href="/" className="flex items-center gap-2 min-w-0">
+        <div className="flex h-16 items-center justify-between border-b border-border px-4">
+          <Link href="/" className="flex min-w-0 items-center gap-2">
             <BeeIcon className="w-8 h-8 shrink-0" />
-            {!collapsed && (
-              <span className="font-heading font-bold text-lg text-text-primary tracking-wide">
-                cashive
-                <span className="text-accent-gold">.gg</span>
+            {!collapsed ? (
+              <span className="font-heading text-lg font-bold tracking-wide text-text-primary">
+                cashive<span className="text-accent-gold">.gg</span>
               </span>
-            )}
+            ) : null}
           </Link>
 
-          {/* Mobile close */}
-          <button
-            onClick={onMobileClose}
-            className="lg:hidden text-text-secondary hover:text-text-primary p-1"
-          >
+          <button onClick={onMobileClose} className="rounded-md p-1 text-text-secondary hover:text-text-primary lg:hidden">
             <X className="w-5 h-5" />
           </button>
 
-          {/* Desktop collapse toggle */}
           <button
             onClick={onToggleCollapse}
-            className="hidden lg:flex text-text-secondary hover:text-text-primary p-1 rounded-md hover:bg-bg-elevated transition-colors"
+            className="hidden rounded-md p-1 text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary lg:flex"
           >
-            {collapsed ? (
-              <ChevronRight className="w-4 h-4" />
-            ) : (
-              <ChevronLeft className="w-4 h-4" />
-            )}
+            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
         </div>
 
-        {/* Nav sections */}
-        <nav className="flex-1 overflow-y-auto py-4 px-2">
-          {navSections.map((section) => (
-            <div key={section.section} className="mb-4">
-              {!collapsed && (
-                <span className="px-3 text-[10px] font-semibold tracking-[0.15em] text-text-tertiary uppercase mb-1 block">
+        <nav className="flex-1 overflow-y-auto px-2 py-4">
+          {navSections.map((section, index) => (
+            <div key={section.section} className="mb-5">
+              {!collapsed ? (
+                <span className="mb-1 block px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-text-tertiary">
                   {section.section}
                 </span>
-              )}
+              ) : null}
               {section.items.map((item) => {
                 const Icon = iconMap[item.icon] || Home;
-                const isActive =
-                  pathname === item.href ||
-                  (item.href !== "/" && pathname.startsWith(item.href));
+                const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
 
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     onClick={onMobileClose}
-                    className={`
-                      flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5
-                      transition-all duration-200 group relative
-                      ${
-                        isActive
-                          ? "bg-accent-gold/10 text-accent-gold"
-                          : "text-text-secondary hover:text-text-primary hover:bg-bg-elevated"
-                      }
-                      ${collapsed ? "justify-center" : ""}
-                    `}
+                    className={`group relative mb-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${isActive ? "bg-accent-gold/10 text-accent-gold" : "text-text-secondary hover:bg-bg-elevated hover:text-text-primary"} ${collapsed ? "justify-center" : ""}`}
                   >
-                    {/* Active indicator bar */}
-                    {isActive && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-accent-gold rounded-r-full" />
-                    )}
-
-                    <Icon
-                      className={`w-5 h-5 shrink-0 ${
-                        isActive
-                          ? "text-accent-gold"
-                          : "text-text-secondary group-hover:text-text-primary"
-                      }`}
-                    />
-                    {!collapsed && (
-                      <span className="text-sm font-medium">{item.label}</span>
-                    )}
-
-                    {/* Tooltip for collapsed state */}
-                    {collapsed && (
-                      <div className="absolute left-full ml-2 px-2 py-1 bg-bg-elevated rounded-md text-xs text-text-primary whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 border border-border shadow-lg">
+                    {isActive ? <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-accent-gold" /> : null}
+                    <Icon className={`w-5 h-5 shrink-0 ${isActive ? "text-accent-gold" : "text-text-secondary group-hover:text-text-primary"}`} />
+                    {!collapsed ? <span>{item.label}</span> : null}
+                    {collapsed ? (
+                      <div className="pointer-events-none absolute left-full z-50 ml-2 whitespace-nowrap rounded-md border border-border bg-bg-elevated px-2 py-1 text-xs text-text-primary opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
                         {item.label}
                       </div>
-                    )}
+                    ) : null}
                   </Link>
                 );
               })}
-              {/* Section divider */}
-              <div className="mx-3 my-2 border-t border-border/50" />
+              {index === navSections.length - 1 ? <div className="mx-3 mt-4 border-t border-border/70" /> : null}
             </div>
           ))}
+
+          <Link
+            href="/settings"
+            onClick={onMobileClose}
+            className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${pathname.startsWith("/settings") ? "bg-accent-gold/10 text-accent-gold" : "text-text-secondary hover:bg-bg-elevated hover:text-text-primary"} ${collapsed ? "justify-center" : ""}`}
+          >
+            {pathname.startsWith("/settings") ? <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-accent-gold" /> : null}
+            <Settings className={`w-5 h-5 shrink-0 ${pathname.startsWith("/settings") ? "text-accent-gold" : "text-text-secondary group-hover:text-text-primary"}`} />
+            {!collapsed ? <span>Settings</span> : null}
+          </Link>
         </nav>
 
-        {/* User card at bottom */}
         <div className="border-t border-border p-3">
-          <div
-            className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}
-          >
-            <div className="w-9 h-9 rounded-full bg-accent-gold/20 flex items-center justify-center text-accent-gold font-bold text-sm shrink-0">
-              JD
-            </div>
-            {!collapsed && (
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-text-primary truncate">
-                  JohnDoe
-                </p>
-                {/* XP / Level bar */}
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] text-accent-gold font-medium">
-                    Lv. 12
-                  </span>
-                  <div className="flex-1 h-1.5 bg-bg-deepest rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-accent-gold to-accent-orange rounded-full"
-                      style={{ width: "65%" }}
-                    />
+          <div className={`rounded-xl border border-border bg-bg-elevated/50 p-3 ${collapsed ? "flex justify-center" : ""}`}>
+            <div className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-gold/20 text-xs font-bold text-accent-gold shrink-0">
+                JD
+              </div>
+              {!collapsed ? (
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-text-primary">JohnDoe</p>
+                  <div className="mt-0.5 flex items-center gap-2 text-[11px]">
+                    <span className="font-semibold text-[#A8B2BD]">Silver</span>
+                    <span className="text-text-tertiary">•</span>
+                    <span className="text-text-secondary">Lv12</span>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-bg-deepest">
+                      <div className="h-full rounded-full bg-gradient-to-r from-accent-gold to-accent-orange" style={{ width: "72%" }} />
+                    </div>
+                    <span className="text-[10px] font-medium text-text-tertiary">72%</span>
                   </div>
                 </div>
-              </div>
-            )}
+              ) : null}
+            </div>
           </div>
         </div>
       </aside>
