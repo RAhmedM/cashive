@@ -74,7 +74,7 @@ export default function SurveysPage() {
               className="bg-bg-surface rounded-xl border border-border hover:border-accent-gold/30 transition-all duration-300 p-5 group cursor-pointer relative overflow-hidden hover-shimmer"
             >
               <div className="flex items-center gap-4 mb-4">
-                <ProviderAvatar name={wall.name} size={56} className="rounded-xl" />
+                <ProviderAvatar name={wall.name} image={wall.image} size={56} className="rounded-xl" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-text-primary text-sm group-hover:text-accent-gold transition-colors">

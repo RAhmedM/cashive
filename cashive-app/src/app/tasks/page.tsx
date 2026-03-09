@@ -189,7 +189,7 @@ export default function TasksPage() {
               <HoneycombPattern opacity={0.04} />
               <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-accent-gold via-accent-orange to-accent-gold opacity-50 group-hover:opacity-100 transition-opacity" />
               <div className="relative flex items-center gap-3 mb-2">
-                <ProviderAvatar name={task.title} size={40} />
+                <ProviderAvatar name={task.title} image={task.image} size={40} />
                 <div className="min-w-0 flex-1">
                   <h3 className="text-sm font-semibold text-text-primary truncate group-hover:text-accent-gold transition-colors">{task.title}</h3>
                   <span className="text-[10px] text-text-tertiary">{task.provider}</span>
@@ -242,7 +242,7 @@ export default function TasksPage() {
             >
               <div className="flex items-center gap-4">
                 {/* Avatar */}
-                <ProviderAvatar name={task.title} size={52} className="hidden sm:flex" />
+                <ProviderAvatar name={task.title} image={task.image} size={52} className="hidden sm:flex" />
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">

@@ -13,7 +13,13 @@ interface ProviderAvatarProps {
   className?: string;
 }
 
-export function ProviderAvatar({ name, size = 48, className = "" }: ProviderAvatarProps) {
+export function ProviderAvatar({ name, image, size = 48, className = "" }: ProviderAvatarProps) {
+  const [imgError, setImgError] = React.useState(false);
+
+  React.useEffect(() => {
+    setImgError(false);
+  }, [name, image]);
+
   // Generate initials from the name
   const initials = name
     .split(/\s+/)
@@ -24,10 +30,22 @@ export function ProviderAvatar({ name, size = 48, className = "" }: ProviderAvat
 
   return (
     <div
-      className={`rounded-xl bg-bg-elevated flex items-center justify-center border border-border text-accent-gold font-bold shrink-0 ${className}`}
+      className={`relative overflow-hidden rounded-xl bg-bg-elevated flex items-center justify-center border border-border text-accent-gold font-bold shrink-0 ${className}`}
       style={{ width: size, height: size, fontSize: size * 0.3 }}
     >
-      {initials}
+      {image && !imgError ? (
+        <img
+          src={image}
+          alt={`${name} logo`}
+          className="h-full w-full object-contain p-1.5"
+          loading="lazy"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,rgba(245,166,35,0.12),transparent_60%)] text-accent-gold">
+          {initials}
+        </div>
+      )}
     </div>
   );
 }

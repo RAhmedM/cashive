@@ -59,7 +59,7 @@ export default function WithdrawalModal({
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div className="flex items-center gap-3">
-            <ProviderAvatar name={option.name} size={40} className="rounded-xl" />
+            <ProviderAvatar name={option.name} image={option.image} size={40} className="rounded-xl" />
             <div>
               <h3 className="font-heading font-bold text-text-primary">
                 Withdraw via {option.name}

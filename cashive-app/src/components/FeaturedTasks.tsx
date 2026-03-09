@@ -85,7 +85,7 @@ export default function FeaturedTasks() {
 
               {/* Icon and title */}
               <div className="flex items-start gap-3 mb-3">
-                <ProviderAvatar name={task.title} size={56} className="rounded-xl" />
+                <ProviderAvatar name={task.title} image={task.image} size={56} className="rounded-xl" />
                 <div className="min-w-0">
                   <h3 className="font-semibold text-text-primary text-sm leading-tight group-hover:text-accent-gold transition-colors">
                     {task.title}

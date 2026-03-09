@@ -7,11 +7,12 @@ import { ProviderAvatar } from "./SharedComponents";
 
 interface WallTileProps {
   name: string;
+  image?: string;
   bonus: number;
   subtitle?: string;
 }
 
-function WallTile({ name, bonus, subtitle }: WallTileProps) {
+function WallTile({ name, image, bonus, subtitle }: WallTileProps) {
   return (
     <div className="relative bg-bg-surface rounded-xl border border-border hover:border-accent-gold/30 transition-all duration-300 group cursor-pointer overflow-hidden hover-shimmer">
       {/* Bonus badge */}
@@ -28,7 +29,7 @@ function WallTile({ name, bonus, subtitle }: WallTileProps) {
 
       <div className="relative p-5 flex flex-col items-center text-center">
         {/* Provider Avatar */}
-        <ProviderAvatar name={name} size={64} className="rounded-2xl mb-3 group-hover:border-accent-gold/20 transition-colors group-hover:scale-105 transform duration-200" />
+        <ProviderAvatar name={name} image={image} size={64} className="rounded-2xl mb-3 group-hover:border-accent-gold/20 transition-colors group-hover:scale-105 transform duration-200" />
 
         {/* Name */}
         <h3 className="font-semibold text-text-primary text-sm group-hover:text-accent-gold transition-colors">
@@ -95,6 +96,7 @@ export default function WallSections() {
           <WallTile
             key={wall.id}
             name={wall.name}
+            image={wall.image}
             bonus={wall.bonus}
             subtitle={`${wall.offers} offers`}
           />
@@ -109,6 +111,7 @@ export default function WallSections() {
           <WallTile
             key={wall.id}
             name={wall.name}
+            image={wall.image}
             bonus={wall.bonus}
             subtitle={`Avg. ${wall.avgPayout} Honey`}
           />
@@ -123,6 +126,7 @@ export default function WallSections() {
           <WallTile
             key={wall.id}
             name={wall.name}
+            image={wall.image}
             bonus={wall.bonus}
             subtitle={`~${wall.perVideo} Honey/video`}
           />

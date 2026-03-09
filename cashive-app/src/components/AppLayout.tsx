@@ -56,14 +56,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       {!chatOpen ? (
-        <button
-          type="button"
-          onClick={() => setChatOpen(true)}
-          className="fixed right-0 top-1/2 z-[41] hidden -translate-y-1/2 rounded-l-2xl border border-r-0 border-accent-gold/30 bg-accent-gold px-2 py-5 text-bg-deepest shadow-[0_8px_24px_rgba(245,166,35,0.28)] transition-transform hover:scale-[1.02] xl:flex xl:flex-col xl:items-center xl:gap-2"
-        >
-          <MessageSquare className="w-5 h-5" />
-          <span className="text-xs font-bold [writing-mode:vertical-rl] rotate-180">Chat</span>
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => setChatOpen(true)}
+            className="fixed bottom-24 right-4 z-[41] flex h-11 w-11 items-center justify-center rounded-full border border-accent-gold/30 bg-bg-surface text-accent-gold shadow-[0_8px_24px_rgba(245,166,35,0.18)] transition-all hover:scale-105 md:bottom-6 md:right-6 xl:hidden"
+          >
+            <MessageSquare className="w-5 h-5 animate-chat-pulse" />
+            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-danger" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setChatOpen(true)}
+            className="fixed right-0 top-1/2 z-[41] hidden -translate-y-1/2 rounded-l-2xl border border-r-0 border-accent-gold/30 bg-accent-gold px-2 py-5 text-bg-deepest shadow-[0_8px_24px_rgba(245,166,35,0.28)] transition-transform hover:scale-[1.02] xl:flex xl:flex-col xl:items-center xl:gap-2"
+          >
+            <MessageSquare className="w-5 h-5 animate-chat-pulse" />
+            <span className="text-xs font-bold [writing-mode:vertical-rl] rotate-180">Chat</span>
+          </button>
+        </>
       ) : null}
 
       <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} messages={chatMessages} />

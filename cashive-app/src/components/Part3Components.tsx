@@ -35,7 +35,6 @@ import {
 import {
   CopyButton,
   HexBadge,
-  ProgressBar,
   ProviderAvatar,
 } from "./SharedComponents";
 import BeeLoader from "./BeeLoader";
@@ -57,12 +56,12 @@ export function WelcomeBanner({
   isNewUser?: boolean;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border bg-bg-surface p-6 md:p-8 min-h-[160px]">
+    <div className="relative overflow-hidden rounded-2xl border border-border bg-bg-surface p-5 md:p-8 min-h-[160px] animate-fade-up">
       <HoneycombPattern opacity={0.05} />
       <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-accent-gold/10 via-accent-gold/5 to-transparent pointer-events-none" />
       <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div className="max-w-2xl">
-          <h1 className="font-heading text-3xl font-bold text-text-primary mb-2">
+          <h1 className="mb-2 font-heading text-2xl font-bold text-text-primary md:text-3xl">
             {isNewUser ? (
               <>
                 Welcome to the Hive, <span className="text-accent-gold">{username}</span>!
@@ -97,7 +96,7 @@ export function WelcomeBanner({
           </Link>
         </div>
 
-        <div className="hidden md:flex relative h-28 w-52 items-center justify-center rounded-2xl border border-accent-gold/10 bg-bg-elevated/70">
+        <div className="relative hidden h-28 w-52 items-center justify-center rounded-2xl border border-accent-gold/10 bg-bg-elevated/70 md:flex">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(245,166,35,0.12),transparent_70%)]" />
           <BeeIcon className="w-18 h-18" />
           <div className="absolute right-8 top-6 opacity-50">
@@ -120,14 +119,14 @@ export function PaymentLogoBanner({
   const items = [...logos, ...logos];
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-bg-surface p-4">
+    <div className="overflow-hidden rounded-2xl border border-border bg-bg-surface p-4 animate-fade-up">
       <div className="animate-ticker flex whitespace-nowrap gap-3">
         {items.map((logo, index) => (
           <div
             key={`${logo.name}-${index}`}
             className="inline-flex items-center gap-3 rounded-xl border border-border bg-bg-elevated/60 px-4 py-3 transition-all hover:border-accent-gold/30"
           >
-            <ProviderAvatar name={logo.name} size={36} className="rounded-lg" />
+            <ProviderAvatar name={logo.name} image={logo.image} size={36} className="rounded-lg" />
             <span className="text-sm font-medium text-text-secondary hover:text-text-primary">
               {logo.name}
             </span>
@@ -266,6 +265,7 @@ export function ChatPanel({
   messages: Array<{
     id: number;
     username: string;
+    avatar?: string;
     tier: string | null;
     level: number | null;
     text: string;
@@ -292,7 +292,7 @@ export function ChatPanel({
     <>
       {open ? <div className="fixed inset-0 z-30 bg-black/40 xl:hidden" onClick={onClose} /> : null}
       <aside
-        className={`fixed right-0 top-16 bottom-0 z-40 flex w-full max-w-[100vw] flex-col border-l border-border bg-bg-surface transition-transform duration-300 ease-out md:w-[380px] xl:w-[320px] ${
+        className={`fixed right-0 top-16 bottom-0 z-40 flex w-full max-w-[100vw] flex-col border-l border-border bg-bg-surface transition-transform duration-300 ease-out max-md:top-auto max-md:h-[82vh] max-md:rounded-t-3xl max-md:border-l-0 max-md:border-t md:w-[380px] xl:w-[320px] ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -359,6 +359,7 @@ export function ChatPanel({
               {
                 id: prev.length + 100,
                 username: "JohnDoe",
+                avatar: "/providers/john-doe.svg",
                 tier: "Silver",
                 level: 12,
                 text,
@@ -408,7 +409,7 @@ export function FloatingSupportButton() {
       </button>
 
       {open ? (
-        <div className="fixed inset-x-3 bottom-24 z-[46] rounded-2xl border border-border bg-bg-surface shadow-2xl md:inset-x-auto md:bottom-24 md:right-6 md:w-[360px] xl:right-[344px] xl:bottom-24">
+        <div className="fixed inset-x-3 bottom-24 z-[46] rounded-2xl border border-border bg-bg-surface shadow-2xl max-md:max-h-[78vh] max-md:overflow-hidden md:inset-x-auto md:bottom-24 md:right-6 md:w-[360px] xl:right-[344px] xl:bottom-24">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div className="flex items-center gap-2">
               <BeeIcon className="w-6 h-6" />
@@ -426,7 +427,7 @@ export function FloatingSupportButton() {
             </button>
           </div>
 
-          <div className="max-h-[56vh] overflow-y-auto p-4 md:max-h-[480px]">
+          <div className="max-h-[48vh] overflow-y-auto p-4 md:max-h-[480px]">
             <div className="space-y-2">
               {faqs.map((faq, index) => {
                 const isOpen = expanded === index;
@@ -479,6 +480,11 @@ export function EarningsChart({
   onRangeChange: (range: string) => void;
 }) {
   const ranges = ["7D", "30D", "90D", "All"];
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (!data.length) {
     return (
@@ -489,7 +495,7 @@ export function EarningsChart({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-bg-surface p-5">
+    <div className="rounded-2xl border border-border bg-bg-surface p-5 animate-fade-up">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-heading text-lg font-bold text-text-primary">Earnings Chart</h3>
         <div className="flex flex-wrap gap-2">
@@ -511,28 +517,34 @@ export function EarningsChart({
       </div>
 
       <div className="h-[280px] w-full min-w-0 min-h-[280px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 12, left: -24, bottom: 0 }}>
-            <defs>
-              <linearGradient id="cashiveChart" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#F5A623" stopOpacity={0.5} />
-                <stop offset="100%" stopColor="#F5A623" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke="#2A2433" strokeDasharray="4 4" vertical={false} />
-            <XAxis dataKey="label" tick={{ fill: "#9B95A0", fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: "#9B95A0", fontSize: 11 }} axisLine={false} tickLine={false} />
-            <Tooltip
-              contentStyle={{
-                background: "#1A1520",
-                border: "1px solid #2A2433",
-                borderRadius: 12,
-                color: "#F0ECE4",
-              }}
-            />
-            <Area type="monotone" dataKey="amount" stroke="#F5A623" strokeWidth={3} fill="url(#cashiveChart)" />
-          </AreaChart>
-        </ResponsiveContainer>
+        {mounted ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 10, right: 12, left: -24, bottom: 0 }}>
+              <defs>
+                <linearGradient id="cashiveChart" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#F5A623" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="#F5A623" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="#2A2433" strokeDasharray="4 4" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: "#9B95A0", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "#9B95A0", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip
+                contentStyle={{
+                  background: "#1A1520",
+                  border: "1px solid #2A2433",
+                  borderRadius: 12,
+                  color: "#F0ECE4",
+                }}
+              />
+              <Area type="monotone" dataKey="amount" stroke="#F5A623" strokeWidth={3} fill="url(#cashiveChart)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center rounded-xl border border-border bg-bg-elevated/40">
+            <BeeLoader size="sm" label="Loading chart..." />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -554,7 +566,7 @@ export function ActivityFeed({
   const filters = ["All", "Earnings", "Withdrawals", "Referrals"];
 
   return (
-    <div className="rounded-2xl border border-border bg-bg-surface p-5">
+    <div className="rounded-2xl border border-border bg-bg-surface p-5 animate-fade-up">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-heading text-lg font-bold text-text-primary">Recent Activity</h3>
         <div className="flex flex-wrap gap-2">
@@ -656,7 +668,7 @@ export function SettingsSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className={`rounded-2xl border bg-bg-surface p-6 ${danger ? "border-danger/20" : "border-border"}`}>
+    <section className={`rounded-2xl border bg-bg-surface p-5 md:p-6 animate-fade-up ${danger ? "border-danger/20" : "border-border"}`}>
       <div className="mb-5">
         <h3 className="font-heading text-lg font-bold text-text-primary">{title}</h3>
         {description ? <p className="mt-1 text-sm text-text-secondary">{description}</p> : null}

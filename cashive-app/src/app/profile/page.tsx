@@ -59,7 +59,7 @@ export default function ProfilePage() {
   return (
     <AppLayout>
       <div className="space-y-8">
-        <section className="relative overflow-hidden rounded-2xl border border-border bg-bg-surface p-6 md:p-8">
+          <section className="relative overflow-hidden rounded-2xl border border-border bg-bg-surface p-5 md:p-8">
           <div className="absolute inset-0 bg-gradient-to-br from-[#A8B2BD]/12 via-transparent to-accent-gold/5 pointer-events-none" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
@@ -74,7 +74,7 @@ export default function ProfilePage() {
                   <span className="text-text-tertiary">•</span>
                   <span className="text-text-secondary">Level {currentUser.level}</span>
                 </div>
-                <div className="mt-2 flex items-center gap-2 text-xs text-text-tertiary">
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-tertiary">
                   <span>User ID: {currentUser.userId}</span>
                   <CopyButton text={currentUser.userId} className="px-2.5 py-1 text-xs" />
                 </div>
@@ -98,7 +98,7 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 animate-fade-up">
           <StatCard icon={<DollarSign className="w-5 h-5" />} label="Total Earned" value={`$${currentUser.totalEarnedUsd.toFixed(2)}`} valueColor="text-accent-gold" />
           <StatCard icon={<CheckCircle className="w-5 h-5" />} label="Tasks Completed" value={currentUser.totalTasksCompleted} />
           <StatCard icon={<MessageSquareMore className="w-5 h-5" />} label="Surveys Completed" value={currentUser.totalSurveysCompleted} />
@@ -121,8 +121,8 @@ export default function ProfilePage() {
           }}
         />
 
-        <section className="rounded-2xl border border-border bg-bg-surface p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
+        <section className="rounded-2xl border border-border bg-bg-surface p-5 animate-fade-up">
+          <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
             <div>
               <h2 className="font-heading text-xl font-bold text-text-primary">Achievements</h2>
               <p className="mt-1 text-sm text-text-secondary">Milestones across tasks, surveys, streaks, referrals, and cashouts.</p>

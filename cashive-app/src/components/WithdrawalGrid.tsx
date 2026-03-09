@@ -77,7 +77,7 @@ export default function WithdrawalGrid({ balance }: WithdrawalGridProps) {
                   <div className="relative p-5">
                     {/* Icon and name */}
                     <div className="flex items-center gap-3 mb-3">
-                      <ProviderAvatar name={option.name} size={48} className="rounded-xl" />
+                      <ProviderAvatar name={option.name} image={option.image} size={48} className="rounded-xl" />
                       <div>
                         <h3 className="font-semibold text-text-primary text-sm group-hover:text-accent-gold transition-colors">
                           {option.name}

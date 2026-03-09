@@ -5,15 +5,15 @@
 export function providerImage(name: string): string {
   // In production, these would be real logo URLs from an asset CDN or offerwall API.
   // For now, we return a placeholder path that the UI will handle with an initials fallback.
-  return `/providers/${name.toLowerCase().replace(/\s+/g, "-")}.png`;
+  return `/providers/${name.toLowerCase().replace(/\s+/g, "-")}.svg`;
 }
 
 export function appImage(name: string): string {
-  return `/apps/${name.toLowerCase().replace(/\s+/g, "-")}.png`;
+  return `/apps/${name.toLowerCase().replace(/\s+/g, "-")}.svg`;
 }
 
 export function paymentImage(name: string): string {
-  return `/payments/${name.toLowerCase().replace(/\s+/g, "-")}.png`;
+  return `/payments/${name.toLowerCase().replace(/\s+/g, "-")}.svg`;
 }
 
 // ─── Featured Tasks ──────────────────────────────────────────────
@@ -740,6 +740,7 @@ export const chatMessages = [
   {
     id: 1,
     username: "BeeScout",
+    avatar: providerImage("bee-scout"),
     tier: "Silver" as const,
     level: 12,
     text: "Anybody else getting strong payouts from Torox today?",
@@ -749,6 +750,7 @@ export const chatMessages = [
   {
     id: 2,
     username: "HoneyKing",
+    avatar: providerImage("honey-king"),
     tier: "Gold" as const,
     level: 24,
     text: "Yeah, BitLabs surveys have been solid too.",
@@ -768,6 +770,7 @@ export const chatMessages = [
   {
     id: 4,
     username: "JohnDoe",
+    avatar: providerImage("john-doe"),
     tier: "Silver" as const,
     level: 12,
     text: "I finally finished Rise of Kingdoms this morning.",
@@ -777,6 +780,7 @@ export const chatMessages = [
   {
     id: 5,
     username: "PlatHive",
+    avatar: providerImage("plat-hive"),
     tier: "Platinum" as const,
     level: 41,
     text: "Nice. Monthly race is getting wild already.",

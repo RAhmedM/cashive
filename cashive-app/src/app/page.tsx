@@ -50,14 +50,14 @@ export default function HomePage() {
           isNewUser={currentUser.isNewUser}
         />
 
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 animate-fade-up">
           <StatCard icon={<Coins className="w-5 h-5" />} label="Honey Balance" value={currentUser.honeyBalance.toLocaleString()} valueColor="text-accent-gold" />
           <StatCard icon={<CheckCircle className="w-5 h-5" />} label="Tasks Completed" value={currentUser.tasksCompleted} />
           <StatCard icon={<TrendingUp className="w-5 h-5" />} label="Earned Today" value={currentUser.earnedToday.toLocaleString()} valueColor="text-accent-gold" />
           <StatCard icon={<Flame className="w-5 h-5" />} label="Daily Streak" value={`${currentUser.streakDays}d`} subtext="Keep it alive" valueColor="text-accent-gold" />
         </section>
 
-        <section>
+        <section className="animate-fade-up">
           <div className="mb-4">
             <h2 className="font-heading text-xl font-bold text-text-primary">Quick Actions</h2>
             <p className="mt-1 text-sm text-text-secondary">Jump straight into the highest-impact earning paths.</p>
@@ -83,8 +83,8 @@ export default function HomePage() {
 
         <FeaturedTasks />
 
-        <section>
-          <div className="mb-4 flex items-center justify-between gap-3">
+        <section className="animate-fade-up">
+          <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
             <div>
               <h2 className="font-heading text-xl font-bold text-text-primary">Your Active Tasks</h2>
               <p className="mt-1 text-sm text-text-secondary">Offers you&apos;ve started and can continue right now.</p>
@@ -98,7 +98,7 @@ export default function HomePage() {
               {activeUserTasks.map((task) => (
                 <div key={task.id} className="rounded-2xl border border-border bg-bg-surface p-4 md:p-5">
                   <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                    <ProviderAvatar name={task.title} size={56} className="rounded-xl" />
+                    <ProviderAvatar name={task.title} image={task.image} size={56} className="rounded-xl" />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-sm font-semibold text-text-primary">{task.title}</h3>
@@ -133,7 +133,7 @@ export default function HomePage() {
           )}
         </section>
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr] animate-fade-up">
           <section className="rounded-2xl border border-border bg-bg-surface p-5">
             <div className="mb-4">
               <h2 className="font-heading text-xl font-bold text-text-primary">Recent Platform Activity</h2>
@@ -142,7 +142,7 @@ export default function HomePage() {
             <div className="space-y-3">
               {platformActivitySnapshot.map((item) => (
                 <div key={item.id} className="flex items-start gap-3 rounded-xl border border-border/70 bg-bg-elevated/35 px-3 py-3">
-                  <ProviderAvatar name={item.user} size={24} className="rounded-full text-[9px]" />
+                  <ProviderAvatar name={item.user} image={item.image} size={24} className="rounded-full text-[9px]" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-text-primary">
                       <span className="font-semibold">{item.user}</span> {item.text}
@@ -158,7 +158,7 @@ export default function HomePage() {
           </section>
 
           <section className="rounded-2xl border border-border bg-bg-surface p-5">
-            <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <h2 className="font-heading text-xl font-bold text-text-primary">Top Earners Today</h2>
                 <p className="mt-1 text-sm text-text-secondary">Who&apos;s stacking the most Honey today.</p>
@@ -184,7 +184,7 @@ export default function HomePage() {
           </section>
         </div>
 
-        <section>
+        <section className="animate-fade-up">
           <div className="mb-4">
             <h2 className="font-heading text-xl font-bold text-text-primary">Payment Methods</h2>
             <p className="mt-1 text-sm text-text-secondary">Trusted payout brands and gift card partners available across the platform.</p>

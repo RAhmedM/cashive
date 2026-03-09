@@ -11,14 +11,7 @@ import {
 import { CopyButton, ProgressBar, ProviderAvatar } from "@/components/SharedComponents";
 import { activeSessions, currentUser, linkedAccounts } from "@/data/mockData";
 import {
-  Check,
   ChevronRight,
-  CircleAlert,
-  Shield,
-  UserCircle,
-  Bell,
-  Monitor,
-  Eye,
   TriangleAlert,
 } from "lucide-react";
 
@@ -60,6 +53,13 @@ export default function SettingsPage() {
   });
 
   const save = (message = "Saved") => setToast({ type: "success", message });
+  const jumpToSection = (section: string) => {
+    setActiveSection(section);
+    document.getElementById(`settings-${section.toLowerCase().replace(/\s+/g, "-")}`)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
 
   return (
     <AppLayout>
@@ -72,13 +72,13 @@ export default function SettingsPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[240px_1fr]">
-          <aside className="h-fit rounded-2xl border border-border bg-bg-surface p-3 xl:sticky xl:top-24">
+          <aside className="h-fit rounded-2xl border border-border bg-bg-surface p-3 animate-fade-up xl:sticky xl:top-24">
             <nav className="space-y-1">
               {sections.map((section) => (
                 <button
                   key={section}
                   type="button"
-                  onClick={() => setActiveSection(section)}
+                    onClick={() => jumpToSection(section)}
                   className={`relative flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all ${activeSection === section ? "bg-accent-gold/10 text-accent-gold" : "text-text-secondary hover:bg-bg-elevated hover:text-text-primary"}`}
                 >
                   {activeSection === section ? <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-accent-gold" /> : null}
@@ -90,6 +90,7 @@ export default function SettingsPage() {
           </aside>
 
           <div className="space-y-6">
+            <div id="settings-account" className="scroll-mt-24">
             <SettingsSection title="Account" description="Identity, linked accounts, and how your balance is displayed.">
               <div className="space-y-4">
                 <div className="rounded-xl border border-border bg-bg-elevated/35 p-4">
@@ -121,7 +122,7 @@ export default function SettingsPage() {
                   {linkedAccounts.map((account) => (
                     <div key={account.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-bg-elevated/35 p-4">
                       <div className="flex items-center gap-3">
-                        <ProviderAvatar name={account.name} size={40} className="rounded-xl" />
+                        <ProviderAvatar name={account.name} image={account.image} size={40} className="rounded-xl" />
                         <div>
                           <p className="text-sm font-medium text-text-primary">{account.name}</p>
                           <span className={`text-xs font-semibold ${account.connected ? "text-success" : "text-text-tertiary"}`}>
@@ -160,7 +161,9 @@ export default function SettingsPage() {
                 </div>
               </div>
             </SettingsSection>
+            </div>
 
+            <div id="settings-profile" className="scroll-mt-24">
             <SettingsSection title="Profile" description="Avatar, username, and survey profile details.">
               <div className="space-y-4">
                 <div className="flex flex-col gap-4 rounded-xl border border-border bg-bg-elevated/35 p-4 md:flex-row md:items-center md:justify-between">
@@ -192,7 +195,9 @@ export default function SettingsPage() {
                 </div>
               </div>
             </SettingsSection>
+            </div>
 
+            <div id="settings-security" className="scroll-mt-24">
             <SettingsSection title="Security" description="Password, sessions, 2FA, and identity verification.">
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -244,7 +249,9 @@ export default function SettingsPage() {
                 </div>
               </div>
             </SettingsSection>
+            </div>
 
+            <div id="settings-notifications" className="scroll-mt-24">
             <SettingsSection title="Notifications" description="Choose how Cashive keeps you updated.">
               <div className="space-y-3">
                 <ToggleSwitch label="Withdrawal confirmations" value={formState.emailNotifications} onChange={(value) => { setFormState((prev) => ({ ...prev, emailNotifications: value })); save(); }} />
@@ -259,7 +266,9 @@ export default function SettingsPage() {
                 <ToggleSwitch label="Promo code drops" value={formState.promoDrops} onChange={(value) => { setFormState((prev) => ({ ...prev, promoDrops: value })); save(); }} />
               </div>
             </SettingsSection>
+            </div>
 
+            <div id="settings-display-preferences" className="scroll-mt-24">
             <SettingsSection title="Display Preferences" description="Interface preferences for balance, chat, and language.">
               <div className="space-y-4">
                 <div className="rounded-xl border border-border bg-bg-elevated/35 p-4">
@@ -304,7 +313,9 @@ export default function SettingsPage() {
                 </div>
               </div>
             </SettingsSection>
+            </div>
 
+            <div id="settings-privacy" className="scroll-mt-24">
             <SettingsSection title="Privacy" description="Control how visible you are across the platform.">
               <div className="space-y-3">
                 <ToggleSwitch label="Show my profile publicly" value={formState.publicProfile} onChange={(value) => { setFormState((prev) => ({ ...prev, publicProfile: value })); save(); }} />
@@ -319,7 +330,9 @@ export default function SettingsPage() {
                 </div>
               </div>
             </SettingsSection>
+            </div>
 
+            <div id="settings-danger-zone" className="scroll-mt-24">
             <SettingsSection title="Danger Zone" description="Destructive actions that affect your account access and stored data." danger>
               <div className="space-y-4">
                 <div className="rounded-xl border border-danger/15 bg-danger/5 p-4 flex items-center justify-between gap-3">
@@ -351,6 +364,7 @@ export default function SettingsPage() {
                 </div>
               </div>
             </SettingsSection>
+            </div>
           </div>
         </div>
       </div>

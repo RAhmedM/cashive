@@ -62,7 +62,7 @@ export default function TransactionHistory() {
                 </td>
                 <td className="px-5 py-3.5">
                   <div className="flex items-center gap-2">
-                    <ProviderAvatar name={tx.method} size={28} className="rounded-md" />
+                    <ProviderAvatar name={tx.method} image={tx.methodImage} size={28} className="rounded-md" />
                     <span className="text-sm text-text-primary">
                       {tx.method}
                     </span>
@@ -93,7 +93,7 @@ export default function TransactionHistory() {
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <ProviderAvatar name={tx.method} size={28} className="rounded-md" />
+                <ProviderAvatar name={tx.method} image={tx.methodImage} size={28} className="rounded-md" />
                 <span className="text-sm font-medium text-text-primary">
                   {tx.method}
                 </span>
