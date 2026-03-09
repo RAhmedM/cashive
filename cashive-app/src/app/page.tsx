@@ -31,7 +31,7 @@ export default function HomePage() {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-[900px]">
+      <div className="space-y-6">
         {/* ── Section 1: Welcome + Stats (merged) ── */}
         <section className="rounded-2xl border border-border bg-bg-surface p-5 md:p-6 animate-fade-up">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
