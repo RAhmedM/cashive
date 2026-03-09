@@ -608,7 +608,6 @@ export const currentUser = {
   surveyProfileCompletion: 72,
   balanceDisplay: "both" as const,
   chatDefaultOpen: false,
-  showTickerInChat: true,
   language: "English",
   kycStatus: "pending" as const,
 };

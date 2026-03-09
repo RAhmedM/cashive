@@ -39,7 +39,6 @@ export default function SettingsPage() {
     streakReminders: true,
     promoDrops: false,
     chatOpenOnLoad: false,
-    showTickerInChat: true,
     publicProfile: true,
     anonymousChat: false,
     anonymousLeaderboard: false,
@@ -294,7 +293,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <ToggleSwitch label="Open chat panel on page load" value={formState.chatOpenOnLoad} onChange={(value) => { setFormState((prev) => ({ ...prev, chatOpenOnLoad: value })); save(); }} />
-                <ToggleSwitch label="Show live activity ticker in chat" value={formState.showTickerInChat} onChange={(value) => { setFormState((prev) => ({ ...prev, showTickerInChat: value })); save(); }} />
                 <div className="rounded-xl border border-border bg-bg-elevated/35 p-4">
                   <label className="mb-2 block text-sm font-medium text-text-primary">Language</label>
                   <select

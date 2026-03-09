@@ -314,7 +314,7 @@ export function ChatPanel({
     <>
       {open ? <div className="fixed inset-0 z-30 bg-black/40 xl:hidden" onClick={onClose} /> : null}
       <aside
-        className={`fixed right-0 top-16 bottom-0 z-40 flex w-full max-w-[100vw] flex-col border-l border-border bg-bg-surface transition-transform duration-300 ease-out max-md:top-auto max-md:h-[82vh] max-md:rounded-t-3xl max-md:border-l-0 max-md:border-t md:w-[380px] xl:w-[320px] ${
+        className={`fixed right-0 top-16 bottom-0 z-40 flex w-full max-w-[100vw] flex-col overflow-hidden border-l border-border bg-bg-surface transition-transform duration-300 ease-out max-md:top-auto max-md:h-[82vh] max-md:rounded-t-3xl max-md:border-l-0 max-md:border-t md:w-[380px] xl:w-[320px] ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -372,20 +372,6 @@ export function ChatPanel({
         {/* Chat tab content */}
         {activeTab === "chat" ? (
           <>
-            <div className="border-b border-border bg-bg-elevated/50 px-4 py-2">
-              <div className="animate-ticker flex whitespace-nowrap text-[11px] text-text-secondary">
-                {[...Array(2)].flatMap((_, idx) =>
-                  localMessages.slice(0, 3).map((msg) => (
-                    <div key={`${idx}-${msg.id}`} className="mx-4 inline-flex items-center gap-1.5">
-                      <BeeIcon className="w-3.5 h-3.5 text-accent-gold" />
-                      <span className="text-text-primary">{msg.username}</span>
-                      <span>{msg.text}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
             <div className="flex-1 overflow-y-auto px-3 py-3">
               {loading ? (
                 <div className="flex h-full items-center justify-center">

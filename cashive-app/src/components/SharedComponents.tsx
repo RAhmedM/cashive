@@ -62,14 +62,14 @@ interface StatCardProps {
 
 export function StatCard({ icon, label, value, subtext, valueColor = "text-text-primary" }: StatCardProps) {
   return (
-    <div className="bg-bg-surface rounded-xl border border-border p-4 flex items-start gap-3">
-      <div className="w-10 h-10 rounded-lg bg-bg-elevated flex items-center justify-center text-accent-gold shrink-0 border border-border">
+    <div className="flex min-h-[92px] items-center gap-3 rounded-xl border border-border bg-bg-surface p-4">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-bg-elevated text-accent-gold">
         {icon}
       </div>
-      <div className="min-w-0">
-        <p className="text-xs text-text-secondary mb-0.5">{label}</p>
-        <p className={`font-mono font-bold text-xl ${valueColor}`}>{value}</p>
-        {subtext && <p className="text-[10px] text-text-tertiary mt-0.5">{subtext}</p>}
+      <div className="flex min-w-0 flex-1 flex-col justify-center">
+        <p className="mb-0.5 text-xs leading-4 text-text-secondary">{label}</p>
+        <p className={`font-mono text-xl font-bold leading-none ${valueColor}`}>{value}</p>
+        {subtext ? <p className="mt-1 text-[10px] leading-4 text-text-tertiary">{subtext}</p> : null}
       </div>
     </div>
   );
