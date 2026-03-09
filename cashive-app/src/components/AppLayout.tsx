@@ -3,7 +3,7 @@
 import React from "react";
 import Sidebar from "./Sidebar";
 import TopNav from "./TopNav";
-import { ChatPanel, FloatingSupportButton } from "./Part3Components";
+import { ChatPanel } from "./Part3Components";
 import { chatMessages } from "@/data/mockData";
 import { MessageSquare } from "lucide-react";
 
@@ -77,7 +77,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       ) : null}
 
       <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} messages={chatMessages} />
-      <FloatingSupportButton />
     </div>
   );
 }

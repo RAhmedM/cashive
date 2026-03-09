@@ -23,6 +23,7 @@ import {
   Headset,
   Info,
   MessageCircleQuestion,
+  MessageSquare,
   PanelRightClose,
   SendHorizontal,
   Smile,
@@ -276,6 +277,27 @@ export function ChatPanel({
 }) {
   const [loading, setLoading] = React.useState(false);
   const [localMessages, setLocalMessages] = React.useState(messages);
+  const [activeTab, setActiveTab] = React.useState<"chat" | "support">("chat");
+  const [expanded, setExpanded] = React.useState<number | null>(0);
+
+  const faqs = [
+    {
+      question: "How do I withdraw?",
+      answer: "Go to Cashout, choose a payment method, enter your details, and confirm the withdrawal.",
+    },
+    {
+      question: "Why is my offer not credited?",
+      answer: "Some offers take time to validate. Make sure tracking was enabled and the requirement was completed exactly.",
+    },
+    {
+      question: "How long do withdrawals take?",
+      answer: "Most crypto and PayPal methods process quickly, while gift cards can take up to 24 hours.",
+    },
+    {
+      question: "How do I verify my account?",
+      answer: "Open Settings > Security and start the identity verification flow before your first withdrawal.",
+    },
+  ];
 
   React.useEffect(() => {
     if (!open) return;
@@ -296,17 +318,14 @@ export function ChatPanel({
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="sticky top-0 z-10 border-b border-border bg-bg-surface/95 px-4 py-3 backdrop-blur-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <BeeIcon className="w-6 h-6" />
-                <h3 className="font-heading text-base font-bold text-text-primary">Hive Chat</h3>
-              </div>
-              <div className="mt-1 flex items-center gap-2 text-[11px] text-success">
-                <span className="h-2 w-2 rounded-full bg-success" />
-                <span>142 online</span>
-              </div>
+        {/* Header with close button */}
+        <div className="sticky top-0 z-10 border-b border-border bg-bg-surface/95 backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-2">
+            <div className="flex items-center gap-2">
+              <BeeIcon className="w-6 h-6" />
+              <h3 className="font-heading text-base font-bold text-text-primary">
+                {activeTab === "chat" ? "Hive Chat" : "Support"}
+              </h3>
             </div>
             <button
               type="button"
@@ -316,59 +335,140 @@ export function ChatPanel({
               <PanelRightClose className="w-4 h-4" />
             </button>
           </div>
-        </div>
 
-        <div className="border-b border-border bg-bg-elevated/50 px-4 py-2">
-          <div className="animate-ticker flex whitespace-nowrap text-[11px] text-text-secondary">
-            {[...Array(2)].flatMap((_, idx) =>
-              localMessages.slice(0, 3).map((msg) => (
-                <div key={`${idx}-${msg.id}`} className="mx-4 inline-flex items-center gap-1.5">
-                  <BeeIcon className="w-3.5 h-3.5 text-accent-gold" />
-                  <span className="text-text-primary">{msg.username}</span>
-                  <span>{msg.text}</span>
-                </div>
-              ))
-            )}
+          {/* Tabs */}
+          <div className="flex px-4 gap-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab("chat")}
+              className={`flex-1 flex items-center justify-center gap-1.5 rounded-t-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                activeTab === "chat"
+                  ? "border-b-2 border-accent-gold text-accent-gold"
+                  : "text-text-tertiary hover:text-text-secondary"
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Chat</span>
+              <span className="ml-1 flex items-center gap-1 text-[10px] text-success">
+                <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                142
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("support")}
+              className={`flex-1 flex items-center justify-center gap-1.5 rounded-t-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                activeTab === "support"
+                  ? "border-b-2 border-accent-gold text-accent-gold"
+                  : "text-text-tertiary hover:text-text-secondary"
+              }`}
+            >
+              <Headset className="w-3.5 h-3.5" />
+              <span>Support</span>
+            </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-3">
-          {loading ? (
-            <div className="flex h-full items-center justify-center">
-              <BeeLoader size="sm" label="Loading chat..." />
+        {/* Chat tab content */}
+        {activeTab === "chat" ? (
+          <>
+            <div className="border-b border-border bg-bg-elevated/50 px-4 py-2">
+              <div className="animate-ticker flex whitespace-nowrap text-[11px] text-text-secondary">
+                {[...Array(2)].flatMap((_, idx) =>
+                  localMessages.slice(0, 3).map((msg) => (
+                    <div key={`${idx}-${msg.id}`} className="mx-4 inline-flex items-center gap-1.5">
+                      <BeeIcon className="w-3.5 h-3.5 text-accent-gold" />
+                      <span className="text-text-primary">{msg.username}</span>
+                      <span>{msg.text}</span>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-          ) : (
-            <div className="space-y-1">
-              {localMessages.map((message) => (
-                <ChatMessage key={message.id} {...message} />
-              ))}
+
+            <div className="flex-1 overflow-y-auto px-3 py-3">
+              {loading ? (
+                <div className="flex h-full items-center justify-center">
+                  <BeeLoader size="sm" label="Loading chat..." />
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {localMessages.map((message) => (
+                    <ChatMessage key={message.id} {...message} />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <div className="px-3 pb-2">
-          <button className="mx-auto block rounded-full bg-accent-gold/10 px-3 py-1 text-[11px] font-medium text-accent-gold hover:bg-accent-gold/15">
-            Jump to latest
-          </button>
-        </div>
+            <div className="px-3 pb-2">
+              <button className="mx-auto block rounded-full bg-accent-gold/10 px-3 py-1 text-[11px] font-medium text-accent-gold hover:bg-accent-gold/15">
+                Jump to latest
+              </button>
+            </div>
 
-        <ChatInput
-          onSend={(text) => {
-            setLocalMessages((prev) => [
-              ...prev,
-              {
-                id: prev.length + 100,
-                username: "JohnDoe",
-                avatar: "/providers/john-doe.svg",
-                tier: "Silver",
-                level: 12,
-                text,
-                time: "just now",
-                isCurrentUser: true,
-              },
-            ]);
-          }}
-        />
+            <ChatInput
+              onSend={(text) => {
+                setLocalMessages((prev) => [
+                  ...prev,
+                  {
+                    id: prev.length + 100,
+                    username: "JohnDoe",
+                    avatar: "/providers/john-doe.svg",
+                    tier: "Silver",
+                    level: 12,
+                    text,
+                    time: "just now",
+                    isCurrentUser: true,
+                  },
+                ]);
+              }}
+            />
+          </>
+        ) : (
+          /* Support tab content */
+          <>
+            <div className="flex-1 overflow-y-auto p-4">
+              <p className="mb-3 text-xs text-text-secondary">
+                Browse common questions or start a live chat with our team.
+              </p>
+              <div className="space-y-2">
+                {faqs.map((faq, index) => {
+                  const isOpen = expanded === index;
+                  return (
+                    <div key={faq.question} className="rounded-xl border border-border bg-bg-elevated/60">
+                      <button
+                        type="button"
+                        onClick={() => setExpanded(isOpen ? null : index)}
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                      >
+                        <span className="text-sm font-medium text-text-primary">{faq.question}</span>
+                        {isOpen ? <ChevronUp className="w-4 h-4 text-text-secondary" /> : <ChevronDown className="w-4 h-4 text-text-secondary" />}
+                      </button>
+                      {isOpen ? <p className="px-4 pb-3 text-xs leading-5 text-text-secondary">{faq.answer}</p> : null}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button className="mt-4 w-full rounded-lg bg-accent-gold px-4 py-2.5 text-sm font-semibold text-bg-deepest transition-all hover:bg-accent-gold-hover">
+                Start Live Chat
+              </button>
+            </div>
+
+            <div className="border-t border-border p-3">
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-bg-deepest px-3 py-2">
+                <MessageCircleQuestion className="w-4 h-4 text-text-tertiary" />
+                <input
+                  placeholder="Describe your issue..."
+                  className="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+                />
+                <button className="rounded-full bg-accent-gold p-2 text-bg-deepest">
+                  <SendHorizontal className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </aside>
     </>
   );
