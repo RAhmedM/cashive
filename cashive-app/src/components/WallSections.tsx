@@ -2,51 +2,8 @@
 
 import React from "react";
 import { offerWalls, surveyWalls, watchWalls } from "@/data/mockData";
-import { ChevronDown, Hexagon } from "lucide-react";
-import { ProviderAvatar } from "./SharedComponents";
-
-interface WallTileProps {
-  name: string;
-  image?: string;
-  bonus: number;
-  subtitle?: string;
-}
-
-function WallTile({ name, image, bonus, subtitle }: WallTileProps) {
-  return (
-    <div className="relative bg-bg-surface rounded-xl border border-border hover:border-accent-gold/30 transition-all duration-300 group cursor-pointer overflow-hidden hover-shimmer">
-      {/* Bonus badge */}
-      {bonus > 0 && (
-        <div className="absolute top-2.5 right-2.5 z-10">
-          <div className="relative flex items-center justify-center">
-            <Hexagon className="w-10 h-10 text-accent-gold fill-accent-gold/20" />
-            <span className="absolute text-[10px] font-bold text-white">
-              +{bonus}%
-            </span>
-          </div>
-        </div>
-      )}
-
-      <div className="relative p-5 flex flex-col items-center text-center">
-        {/* Provider Avatar */}
-        <ProviderAvatar name={name} image={image} size={64} className="rounded-2xl mb-3 group-hover:border-accent-gold/20 transition-colors group-hover:scale-105 transform duration-200" />
-
-        {/* Name */}
-        <h3 className="font-semibold text-text-primary text-sm group-hover:text-accent-gold transition-colors">
-          {name}
-        </h3>
-
-        {/* Subtitle */}
-        {subtitle && (
-          <p className="text-xs text-text-tertiary mt-1">{subtitle}</p>
-        )}
-      </div>
-
-      {/* Bottom hover glow */}
-      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-gold opacity-0 group-hover:opacity-50 transition-opacity" />
-    </div>
-  );
-}
+import { ChevronDown } from "lucide-react";
+import { ProviderTile } from "./SharedComponents";
 
 interface WallSectionProps {
   title: string;
@@ -93,11 +50,12 @@ export default function WallSections() {
         showSort
       >
         {offerWalls.map((wall) => (
-          <WallTile
+          <ProviderTile
             key={wall.id}
             name={wall.name}
-            image={wall.image}
-            bonus={wall.bonus}
+            logo={wall.image}
+            badge={wall.bonus > 0 ? `+${wall.bonus}%` : undefined}
+            badgeColor="#F5A623"
             subtitle={`${wall.offers} offers`}
           />
         ))}
@@ -108,11 +66,12 @@ export default function WallSections() {
         subtitle="Share your opinion and earn Honey"
       >
         {surveyWalls.map((wall) => (
-          <WallTile
+          <ProviderTile
             key={wall.id}
             name={wall.name}
-            image={wall.image}
-            bonus={wall.bonus}
+            logo={wall.image}
+            badge={wall.bonus > 0 ? `+${wall.bonus}%` : undefined}
+            badgeColor="#F5A623"
             subtitle={`Avg. ${wall.avgPayout} Honey`}
           />
         ))}
@@ -123,11 +82,12 @@ export default function WallSections() {
         subtitle="Earn Honey by watching short videos"
       >
         {watchWalls.map((wall) => (
-          <WallTile
+          <ProviderTile
             key={wall.id}
             name={wall.name}
-            image={wall.image}
-            bonus={wall.bonus}
+            logo={wall.image}
+            badge={wall.bonus > 0 ? `+${wall.bonus}%` : undefined}
+            badgeColor="#F5A623"
             subtitle={`~${wall.perVideo} Honey/video`}
           />
         ))}

@@ -3,6 +3,7 @@
 import React from "react";
 import Sidebar from "./Sidebar";
 import TopNav from "./TopNav";
+import LiveTicker from "./LiveTicker";
 import { ChatPanel } from "./Part3Components";
 import { chatMessages } from "@/data/mockData";
 import { MessageSquare } from "lucide-react";
@@ -37,9 +38,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <TopNav onMenuToggle={() => setMobileMenuOpen((v) => !v)} sidebarWidth={sidebarWidth} />
 
-      <main
-        className="min-h-screen pb-20 pt-16 transition-all duration-300 lg:pb-8"
+      {/* Global LiveTicker — between TopNav and main content */}
+      <div
+        className="fixed top-16 z-20 transition-all duration-300"
         style={{
+          left: "var(--ticker-left, 0px)",
+          right: "var(--ticker-right, 0px)",
+        }}
+      >
+        <style>{`
+          @media (min-width: 1024px) {
+            div[class*="fixed top-16"] { --ticker-left: ${sidebarWidth}px; }
+          }
+          @media (min-width: 1280px) {
+            div[class*="fixed top-16"] { --ticker-right: ${chatWidth}px; }
+          }
+        `}</style>
+        <LiveTicker />
+      </div>
+
+      <main
+        className="min-h-screen pb-20 transition-all duration-300 lg:pb-8"
+        style={{
+          paddingTop: "calc(64px + 36px)", /* TopNav (64px) + LiveTicker (36px) */
           marginLeft: "var(--sidebar-offset, 0px)",
           marginRight: "var(--chat-offset, 0px)",
         }}

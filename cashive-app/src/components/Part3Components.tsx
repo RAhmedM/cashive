@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import {
   CopyButton,
+  FilterPill,
   HexBadge,
   ProviderAvatar,
 } from "./SharedComponents";
@@ -586,18 +587,7 @@ export function EarningsChart({
         <h3 className="font-heading text-lg font-bold text-text-primary">Earnings Chart</h3>
         <div className="flex flex-wrap gap-2">
           {ranges.map((item) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => onRangeChange(item)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                range === item
-                  ? "bg-accent-gold text-bg-deepest"
-                  : "border border-border bg-bg-elevated text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              {item}
-            </button>
+            <FilterPill key={item} label={item} active={range === item} onClick={() => onRangeChange(item)} />
           ))}
         </div>
       </div>
@@ -657,18 +647,7 @@ export function ActivityFeed({
         <h3 className="font-heading text-lg font-bold text-text-primary">Recent Activity</h3>
         <div className="flex flex-wrap gap-2">
           {filters.map((item) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => onFilterChange(item)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                filter === item
-                  ? "bg-accent-gold text-bg-deepest"
-                  : "border border-border bg-bg-elevated text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              {item}
-            </button>
+            <FilterPill key={item} label={item} active={filter === item} onClick={() => onFilterChange(item)} />
           ))}
         </div>
       </div>
@@ -830,31 +809,44 @@ export function Toast({
   message: string;
   onDismiss: () => void;
 }) {
+  const [exiting, setExiting] = React.useState(false);
+
   React.useEffect(() => {
-    const timer = setTimeout(onDismiss, 3000);
-    return () => clearTimeout(timer);
+    const exitTimer = setTimeout(() => setExiting(true), 2700);
+    const dismissTimer = setTimeout(onDismiss, 3000);
+    return () => {
+      clearTimeout(exitTimer);
+      clearTimeout(dismissTimer);
+    };
   }, [onDismiss]);
 
-  const styles = {
-    success: {
-      border: "border-success/30",
-      icon: <Check className="w-4 h-4 text-success" />,
-    },
-    error: {
-      border: "border-danger/30",
-      icon: <X className="w-4 h-4 text-danger" />,
-    },
-    info: {
-      border: "border-accent-gold/30",
-      icon: <Info className="w-4 h-4 text-accent-gold" />,
-    },
+  const borderColorMap = {
+    success: "#34C759",
+    error: "#FF4D6A",
+    info: "#F5A623",
+  }[type];
+
+  const iconMap = {
+    success: <Check className="w-4 h-4 text-success" />,
+    error: <X className="w-4 h-4 text-danger" />,
+    info: <Info className="w-4 h-4 text-accent-gold" />,
   }[type];
 
   return (
-    <div className={`fixed right-4 top-20 z-[60] flex items-center gap-3 rounded-xl border bg-bg-surface px-4 py-3 shadow-xl ${styles.border}`}>
-      {styles.icon}
+    <div
+      className="fixed z-[60] flex items-center gap-3 rounded-xl bg-bg-surface px-4 py-3 shadow-xl border border-border"
+      style={{
+        top: 80,
+        right: 24,
+        borderLeft: `3px solid ${borderColorMap}`,
+        opacity: exiting ? 0 : 1,
+        transform: exiting ? "translateY(-8px)" : "translateY(0)",
+        transition: "opacity 300ms ease, transform 300ms ease",
+      }}
+    >
+      {iconMap}
       <span className="text-sm text-text-primary">{message}</span>
-      <button onClick={onDismiss} className="text-text-tertiary hover:text-text-primary">
+      <button onClick={onDismiss} className="text-text-tertiary hover:text-text-primary ml-2">
         <X className="w-4 h-4" />
       </button>
     </div>

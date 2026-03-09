@@ -4,7 +4,7 @@ import React from "react";
 import AppLayout from "@/components/AppLayout";
 import { surveyWalls, surveyStats } from "@/data/mockData";
 import { HoneyIcon } from "@/components/Icons";
-import { ProviderAvatar, StatCard, ProgressBar, StepCards } from "@/components/SharedComponents";
+import { ProviderTile, StatCard, ProgressBar, StepCards } from "@/components/SharedComponents";
 import { BarChart3, CheckCircle2, TrendingUp, ClipboardCheck, UserCircle, MousePointerClick } from "lucide-react";
 
 export default function SurveysPage() {
@@ -24,20 +24,20 @@ export default function SurveysPage() {
           icon={<BarChart3 className="w-5 h-5" />}
           label="Surveys Available"
           value={surveyStats.surveysAvailable}
-          subtext="Across all providers"
+          subtitle="Across all providers"
         />
         <StatCard
           icon={<TrendingUp className="w-5 h-5" />}
           label="Avg. Payout"
           value={surveyStats.avgPayout}
-          subtext="Honey per survey"
+          subtitle="Honey per survey"
           valueColor="text-accent-gold"
         />
         <StatCard
           icon={<CheckCircle2 className="w-5 h-5" />}
           label="You've Completed"
           value={surveyStats.userCompleted}
-          subtext={`Earned ${surveyStats.userTotalEarned.toLocaleString()} Honey total`}
+          subtitle={`Earned ${surveyStats.userTotalEarned.toLocaleString()} Honey total`}
         />
       </div>
 
@@ -69,44 +69,24 @@ export default function SurveysPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {surveyWalls.map((wall) => (
-            <div
+            <ProviderTile
               key={wall.id}
-              className="bg-bg-surface rounded-xl border border-border hover:border-accent-gold/30 transition-all duration-300 p-5 group cursor-pointer relative overflow-hidden hover-shimmer"
+              logo={wall.image}
+              name={wall.name}
+              badge={wall.bonus > 0 ? `+${wall.bonus}%` : undefined}
+              badgeColor="#F5A623"
+              subtitle={`${wall.available} surveys available`}
             >
-              <div className="flex items-center gap-4 mb-4">
-                <ProviderAvatar name={wall.name} image={wall.image} size={56} className="rounded-xl" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-text-primary text-sm group-hover:text-accent-gold transition-colors">
-                      {wall.name}
-                    </h3>
-                    {wall.bonus > 0 && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-gold/10 text-accent-gold border border-accent-gold/20">
-                        +{wall.bonus}%
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-text-tertiary mt-0.5">
-                    {wall.available} surveys available
-                  </p>
-                </div>
+              <div className="flex items-center gap-1 text-xs text-text-secondary mt-2">
+                <span>Avg.</span>
+                <HoneyIcon className="w-3 h-3" />
+                <span className="font-mono font-semibold text-accent-gold">{wall.avgPayout}</span>
+                <span className="text-text-tertiary ml-1">{wall.payoutRange}</span>
               </div>
-
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1 text-text-secondary">
-                  <span>Avg.</span>
-                  <HoneyIcon className="w-3 h-3" />
-                  <span className="font-mono font-semibold text-accent-gold">{wall.avgPayout}</span>
-                </div>
-                <span className="text-text-tertiary">{wall.payoutRange}</span>
-              </div>
-
-              <button className="w-full mt-4 py-2.5 rounded-lg bg-accent-gold text-bg-deepest font-semibold text-sm hover:bg-accent-gold-hover active:scale-[0.98] transition-all">
+              <button className="w-full mt-3 py-2.5 rounded-lg bg-accent-gold text-bg-deepest font-semibold text-sm hover:bg-accent-gold-hover active:scale-[0.98] transition-all">
                 Take Surveys
               </button>
-
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-gold opacity-0 group-hover:opacity-50 transition-opacity" />
-            </div>
+            </ProviderTile>
           ))}
         </div>
       </section>

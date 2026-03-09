@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { withdrawalOptions } from "@/data/mockData";
 import { Lock } from "lucide-react";
 import WithdrawalModal from "./WithdrawalModal";
-import { ProviderAvatar } from "./SharedComponents";
+import { FilterPill, ProviderAvatar } from "./SharedComponents";
 
 const filterTabs = ["All", "PayPal", "Crypto", "Gift Cards"];
 
@@ -39,20 +39,10 @@ export default function WithdrawalGrid({ balance }: WithdrawalGridProps) {
 
   return (
     <>
-      {/* Filter tabs */}
+      {/* Filter tabs — using FilterPill */}
       <div className="flex gap-2 mb-6 overflow-x-auto hide-scrollbar pb-1">
         {filterTabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveFilter(tab)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-              activeFilter === tab
-                ? "bg-accent-gold text-bg-deepest"
-                : "bg-bg-surface border border-border text-text-secondary hover:text-text-primary hover:border-accent-gold/30"
-            }`}
-          >
-            {tab}
-          </button>
+          <FilterPill key={tab} label={tab} active={activeFilter === tab} onClick={() => setActiveFilter(tab)} />
         ))}
       </div>
 

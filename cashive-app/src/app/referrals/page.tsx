@@ -3,8 +3,7 @@
 import React from "react";
 import AppLayout from "@/components/AppLayout";
 import { referralStats, commissionTiers, referredUsers } from "@/data/mockData";
-import { HoneyIcon } from "@/components/Icons";
-import { StatCard, CopyButton, StepCards, ProgressBar } from "@/components/SharedComponents";
+import { StatCard, CopyButton, StepCards, ProgressBar, DataTable, HexBadge } from "@/components/SharedComponents";
 import {
   Users,
   UserPlus,
@@ -17,11 +16,48 @@ import {
   MessageSquare,
   Globe,
   Megaphone,
-  CheckCircle2,
-  Hexagon,
 } from "lucide-react";
 
 export default function ReferralsPage() {
+  type ReferredUser = (typeof referredUsers)[number];
+
+  const referralColumns = [
+    {
+      key: "user",
+      header: "User",
+      mobileLabel: "User",
+      render: (user: ReferredUser) => (
+        <span className="text-sm font-medium text-text-primary">{user.username}</span>
+      ),
+    },
+    {
+      key: "joined",
+      header: "Joined",
+      mobileLabel: "Joined",
+      render: (user: ReferredUser) => (
+        <span className="text-sm text-text-secondary">
+          {new Date(user.joined).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        </span>
+      ),
+    },
+    {
+      key: "theirEarnings",
+      header: "Their Earnings",
+      mobileLabel: "Earned",
+      render: (user: ReferredUser) => (
+        <span className="text-sm font-mono text-text-secondary">${user.theirEarnings.toFixed(2)}</span>
+      ),
+    },
+    {
+      key: "yourCommission",
+      header: "Your Commission",
+      mobileLabel: "Commission",
+      render: (user: ReferredUser) => (
+        <span className="text-sm font-mono font-semibold text-accent-gold">${user.yourCommission.toFixed(2)}</span>
+      ),
+    },
+  ];
+
   return (
     <AppLayout>
       {/* Hero banner */}
@@ -88,7 +124,7 @@ export default function ReferralsPage() {
           icon={<TrendingUp className="w-5 h-5" />}
           label="Commission Rate"
           value={`${referralStats.commissionRate}%`}
-          subtext={`${referralStats.currentTier} Tier`}
+          subtitle={`${referralStats.currentTier} Tier`}
           valueColor="text-success"
         />
       </div>
@@ -117,16 +153,8 @@ export default function ReferralsPage() {
                 )}
 
                 {/* Hex badge with tier icon */}
-                <div className="relative inline-flex items-center justify-center mb-3 mt-1">
-                  <Hexagon
-                    className="w-12 h-12"
-                    style={{ color: tier.color }}
-                    fill={`${tier.color}20`}
-                  />
-                  <Crown
-                    className="w-5 h-5 absolute"
-                    style={{ color: tier.color }}
-                  />
+                <div className="inline-flex items-center justify-center mb-3 mt-1">
+                  <HexBadge icon={Crown} color={tier.color} size="lg" glowing={isCurrent} />
                 </div>
 
                 <h3 className="font-heading font-bold text-text-primary text-sm mb-0.5" style={{ color: isCurrent ? tier.color : undefined }}>
@@ -164,53 +192,14 @@ export default function ReferralsPage() {
         })()}
       </section>
 
-      {/* Referred users table */}
+      {/* Referred users table — using DataTable */}
       <section className="mb-8">
         <h2 className="font-heading text-lg font-bold text-text-primary mb-4">Your Referrals</h2>
-
-        {/* Desktop table */}
-        <div className="hidden md:block bg-bg-surface rounded-xl border border-border overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider px-5 py-3">User</th>
-                <th className="text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider px-5 py-3">Joined</th>
-                <th className="text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider px-5 py-3">Their Earnings</th>
-                <th className="text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider px-5 py-3">Your Commission</th>
-              </tr>
-            </thead>
-            <tbody>
-              {referredUsers.map((user) => (
-                <tr key={user.id} className="border-b border-border/50 last:border-0 hover:bg-bg-elevated/50 transition-colors">
-                  <td className="px-5 py-3.5 text-sm font-medium text-text-primary">{user.username}</td>
-                  <td className="px-5 py-3.5 text-sm text-text-secondary">
-                    {new Date(user.joined).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  </td>
-                  <td className="px-5 py-3.5 text-sm font-mono text-text-secondary">${user.theirEarnings.toFixed(2)}</td>
-                  <td className="px-5 py-3.5 text-sm font-mono font-semibold text-accent-gold">${user.yourCommission.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile cards */}
-        <div className="md:hidden space-y-3">
-          {referredUsers.map((user) => (
-            <div key={user.id} className="bg-bg-surface rounded-xl border border-border p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-text-primary">{user.username}</span>
-                <span className="text-xs text-text-tertiary">
-                  {new Date(user.joined).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-text-secondary">Earned: ${user.theirEarnings.toFixed(2)}</span>
-                <span className="text-sm font-mono font-semibold text-accent-gold">+${user.yourCommission.toFixed(2)}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+        <DataTable
+          columns={referralColumns}
+          rows={referredUsers}
+          rowKey={(user) => user.id}
+        />
       </section>
 
       {/* How it works */}

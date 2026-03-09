@@ -3,8 +3,7 @@
 import React, { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { races } from "@/data/mockData";
-import { HoneyIcon } from "@/components/Icons";
-import { CountdownTimer, FilterPill, StepCards, StatCard } from "@/components/SharedComponents";
+import { CountdownTimer, DataTable, FilterPill, HexBadge, StepCards, StatCard } from "@/components/SharedComponents";
 import {
   Trophy,
   Medal,
@@ -14,7 +13,6 @@ import {
   Target,
   DollarSign,
   Crown,
-  Hexagon,
 } from "lucide-react";
 
 export default function RacesPage() {
@@ -27,11 +25,74 @@ export default function RacesPage() {
     3: "text-[#CD7F32] bg-[#CD7F32]/10 border-[#CD7F32]/30",
   };
 
+  const podiumColors: Record<number, string> = {
+    1: "#F5A623",
+    2: "#A8B2BD",
+    3: "#CD7F32",
+  };
+
   const podiumIcons: Record<number, React.ReactNode> = {
     1: <Crown className="w-4 h-4 text-accent-gold" />,
     2: <Medal className="w-4 h-4 text-[#A8B2BD]" />,
     3: <Medal className="w-4 h-4 text-[#CD7F32]" />,
   };
+
+  type LeaderboardEntry = (typeof race.leaderboard)[number];
+
+  const leaderboardColumns = [
+    {
+      key: "rank",
+      header: "Rank",
+      mobileLabel: "Rank",
+      render: (entry: LeaderboardEntry) => {
+        const isTop3 = entry.rank <= 3;
+        return (
+          <div className="flex items-center gap-1.5">
+            {isTop3 && podiumIcons[entry.rank]}
+            <span className={`text-sm font-mono font-semibold ${isTop3 ? "" : "text-text-secondary"}`}>
+              #{entry.rank}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: "player",
+      header: "Player",
+      mobileLabel: "Player",
+      render: (entry: LeaderboardEntry) => {
+        const isUser = "isUser" in entry && entry.isUser;
+        return (
+          <span className={`text-sm ${isUser ? "font-bold text-accent-gold" : "text-text-primary"}`}>
+            {entry.username}
+            {isUser && <span className="text-[10px] ml-1.5 text-text-secondary">(You)</span>}
+          </span>
+        );
+      },
+    },
+    {
+      key: "points",
+      header: "Points",
+      align: "right" as const,
+      mobileLabel: "Points",
+      render: (entry: LeaderboardEntry) => (
+        <span className="text-sm font-mono text-text-secondary">
+          {entry.points.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      key: "prize",
+      header: "Prize",
+      align: "right" as const,
+      mobileLabel: "Prize",
+      render: (entry: LeaderboardEntry) => (
+        <span className="text-sm font-mono font-semibold text-accent-gold">
+          ${entry.prize}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <AppLayout>
@@ -103,7 +164,7 @@ export default function RacesPage() {
           icon={<TrendingUp className="w-5 h-5" />}
           label="Players"
           value={race.leaderboard.length}
-          subtext="and counting"
+          subtitle="and counting"
         />
       </div>
 
@@ -138,13 +199,12 @@ export default function RacesPage() {
                 key={entry.rank}
                 className={`bg-bg-surface rounded-xl border p-4 text-center ${podiumStyles[entry.rank]}`}
               >
-                <div className="relative inline-flex items-center justify-center mb-2">
-                  <Hexagon
-                    className="w-10 h-10"
-                    fill="currentColor"
-                    style={{ opacity: 0.15 }}
+                <div className="inline-flex items-center justify-center mb-2">
+                  <HexBadge
+                    text={`#${entry.rank}`}
+                    color={podiumColors[entry.rank]}
+                    size="md"
                   />
-                  <span className="absolute text-xs font-bold">#{entry.rank}</span>
                 </div>
                 <p className="font-semibold text-sm text-text-primary mb-0.5">{entry.username}</p>
                 <p className="font-mono text-xs text-text-secondary mb-1">{entry.points.toLocaleString()} pts</p>
@@ -153,61 +213,13 @@ export default function RacesPage() {
             ))}
         </div>
 
-        {/* Full table */}
-        <div className="bg-bg-surface rounded-xl border border-border overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider px-5 py-3 w-16">Rank</th>
-                <th className="text-left text-xs font-semibold text-text-tertiary uppercase tracking-wider px-5 py-3">Player</th>
-                <th className="text-right text-xs font-semibold text-text-tertiary uppercase tracking-wider px-5 py-3">Points</th>
-                <th className="text-right text-xs font-semibold text-text-tertiary uppercase tracking-wider px-5 py-3">Prize</th>
-              </tr>
-            </thead>
-            <tbody>
-              {race.leaderboard.map((entry) => {
-                const isUser = "isUser" in entry && entry.isUser;
-                const isTop3 = entry.rank <= 3;
-
-                return (
-                  <tr
-                    key={entry.rank}
-                    className={`border-b border-border/50 last:border-0 transition-colors ${
-                      isUser
-                        ? "bg-accent-gold/5 sticky bottom-0"
-                        : "hover:bg-bg-elevated/50"
-                    }`}
-                  >
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-1.5">
-                        {isTop3 && podiumIcons[entry.rank]}
-                        <span className={`text-sm font-mono font-semibold ${isTop3 ? "" : "text-text-secondary"}`}>
-                          #{entry.rank}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3">
-                      <span className={`text-sm ${isUser ? "font-bold text-accent-gold" : "text-text-primary"}`}>
-                        {entry.username}
-                        {isUser && <span className="text-[10px] ml-1.5 text-text-secondary">(You)</span>}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <span className="text-sm font-mono text-text-secondary">
-                        {entry.points.toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <span className="text-sm font-mono font-semibold text-accent-gold">
-                        ${entry.prize}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        {/* Full table — using DataTable */}
+        <DataTable
+          columns={leaderboardColumns}
+          rows={race.leaderboard}
+          rowKey={(entry) => entry.rank}
+          highlightRow={(entry) => "isUser" in entry && !!entry.isUser}
+        />
       </section>
 
       {/* How races work */}

@@ -3,20 +3,13 @@
 import React, { useState, useMemo } from "react";
 import AppLayout from "@/components/AppLayout";
 import { allTasks, featuredTasks } from "@/data/mockData";
-import { HoneyIcon, HoneycombPattern } from "@/components/Icons";
-import { ProviderAvatar, FilterPill, EmptyState } from "@/components/SharedComponents";
-import { Search, Clock, ChevronLeft, ChevronRight, SlidersHorizontal, Zap, ArrowUpDown } from "lucide-react";
+import { FilterPill, EmptyState, TaskRow } from "@/components/SharedComponents";
+import { Search, ChevronLeft, ChevronRight, SlidersHorizontal, Zap, ArrowUpDown } from "lucide-react";
 
 const categories = ["All", "Game", "Apps", "Deposits", "Casino", "Free Trials", "Sign-ups", "Quizzes"];
 const sortOptions = ["Popular", "Highest Payout", "Lowest Payout", "Newest"];
 const difficultyOptions = ["All", "Easy", "Medium", "Hard"];
 const providers = ["All", "TyrAds", "AdGem", "Torox", "Lootably", "RevU", "OfferToro", "AdGate"];
-
-const difficultyColors: Record<string, string> = {
-  Easy: "text-success bg-success/10 border-success/20",
-  Medium: "text-accent-gold bg-accent-gold/10 border-accent-gold/20",
-  Hard: "text-danger bg-danger/10 border-danger/20",
-};
 
 export default function TasksPage() {
   const [search, setSearch] = useState("");
@@ -164,7 +157,7 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* Featured tasks strip */}
+      {/* Featured tasks strip — using TaskRow featured variant */}
       <section className="mb-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-heading text-lg font-bold text-text-primary flex items-center gap-2">
@@ -182,29 +175,17 @@ export default function TasksPage() {
         </div>
         <div ref={featuredScrollRef} className="flex gap-3 overflow-x-auto hide-scrollbar snap-x snap-mandatory pb-2">
           {featuredTasks.map((task) => (
-            <div
+            <TaskRow
               key={task.id}
-              className="flex-shrink-0 w-[260px] snap-start bg-bg-surface rounded-xl border border-border hover:border-accent-gold/30 transition-all p-4 group relative overflow-hidden hover-shimmer"
-            >
-              <HoneycombPattern opacity={0.04} />
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-accent-gold via-accent-orange to-accent-gold opacity-50 group-hover:opacity-100 transition-opacity" />
-              <div className="relative flex items-center gap-3 mb-2">
-                <ProviderAvatar name={task.title} image={task.image} size={40} />
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-semibold text-text-primary truncate group-hover:text-accent-gold transition-colors">{task.title}</h3>
-                  <span className="text-[10px] text-text-tertiary">{task.provider}</span>
-                </div>
-              </div>
-              <div className="relative flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                  <HoneyIcon className="w-4 h-4" />
-                  <span className="font-mono font-bold text-accent-gold">{task.reward.toLocaleString()}</span>
-                </div>
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${difficultyColors[task.difficulty]}`}>
-                  {task.difficulty}
-                </span>
-              </div>
-            </div>
+              variant="featured"
+              icon={task.image}
+              title={task.title}
+              description={task.requirement}
+              provider={task.provider}
+              reward={task.reward}
+              difficulty={task.difficulty}
+              estimatedTime={task.estimatedTime}
+            />
           ))}
         </div>
       </section>
@@ -226,61 +207,29 @@ export default function TasksPage() {
         </button>
       </div>
 
-      {/* Task feed */}
+      {/* Task feed — using TaskRow compact variant */}
       {visible.length === 0 ? (
         <EmptyState
           title="No tasks found"
           subtitle="Try adjusting your filters or search query"
+          illustration="bee-searching"
           action={{ label: "Clear Filters", onClick: () => { setSearch(""); setCategory("All"); setDifficulty("All"); setProvider("All"); } }}
         />
       ) : (
         <div className="space-y-3">
           {visible.map((task) => (
-            <div
+            <TaskRow
               key={task.id}
-              className="bg-bg-surface rounded-xl border border-border hover:border-accent-gold/30 transition-all duration-300 p-4 md:p-5 group relative overflow-hidden hover-shimmer"
-            >
-              <div className="flex items-center gap-4">
-                {/* Avatar */}
-                <ProviderAvatar name={task.title} image={task.image} size={52} className="hidden sm:flex" />
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-semibold text-text-primary text-sm group-hover:text-accent-gold transition-colors">
-                      {task.title}
-                    </h3>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${difficultyColors[task.difficulty]}`}>
-                      {task.difficulty}
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-secondary mb-1.5">{task.requirement}</p>
-                  <div className="flex items-center gap-3 text-xs text-text-tertiary">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {task.estimatedTime}
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-bg-elevated border border-border text-[10px]">
-                      {task.provider}
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-bg-elevated border border-border text-[10px]">
-                      {task.category}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Reward + CTA */}
-                <div className="flex flex-col items-end gap-2 shrink-0">
-                  <div className="flex items-center gap-1.5">
-                    <HoneyIcon className="w-5 h-5" />
-                    <span className="font-mono font-bold text-xl text-accent-gold">{task.reward.toLocaleString()}</span>
-                  </div>
-                  <button className="px-4 py-2 bg-accent-gold text-bg-deepest font-semibold text-xs rounded-lg hover:bg-accent-gold-hover active:scale-95 transition-all">
-                    Start
-                  </button>
-                </div>
-              </div>
-            </div>
+              variant="compact"
+              icon={task.image}
+              title={task.title}
+              description={task.requirement}
+              provider={task.provider}
+              category={task.category}
+              reward={task.reward}
+              difficulty={task.difficulty}
+              estimatedTime={task.estimatedTime}
+            />
           ))}
         </div>
       )}

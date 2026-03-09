@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { BeeIcon } from "./Icons";
+import { ProgressBar } from "./SharedComponents";
 
 const iconMap: Record<string, React.ElementType> = {
   Home,
@@ -161,9 +162,7 @@ export default function Sidebar({
                     <span className="text-text-secondary">Lv12</span>
                   </div>
                   <div className="mt-2 flex items-center gap-2">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-bg-deepest">
-                      <div className="h-full rounded-full bg-gradient-to-r from-accent-gold to-accent-orange" style={{ width: "72%" }} />
-                    </div>
+                    <ProgressBar value={72} max={100} size="xs" className="flex-1" />
                     <span className="text-[10px] font-medium text-text-tertiary">72%</span>
                   </div>
                 </div>
