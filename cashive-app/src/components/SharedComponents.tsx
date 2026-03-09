@@ -408,9 +408,19 @@ interface ProviderTileProps {
   subtitle?: string;
   onClick?: () => void;
   children?: React.ReactNode;
+  logoOnly?: boolean;
 }
 
-export function ProviderTile({ logo, name, badge, badgeColor = "#F5A623", subtitle, onClick, children }: ProviderTileProps) {
+export function ProviderTile({
+  logo,
+  name,
+  badge,
+  badgeColor = "#F5A623",
+  subtitle,
+  onClick,
+  children,
+  logoOnly = false,
+}: ProviderTileProps) {
   return (
     <div
       onClick={onClick}
@@ -439,12 +449,29 @@ export function ProviderTile({ logo, name, badge, badgeColor = "#F5A623", subtit
         </div>
       )}
 
-      <div className="relative p-5 flex flex-col items-center text-center">
-        <ProviderAvatar name={name} image={logo} size={56} className="rounded-2xl mb-3 group-hover:scale-105 transform duration-200" />
-        <h3 className="font-semibold text-text-primary text-sm group-hover:text-accent-gold transition-colors">
-          {name}
-        </h3>
-        {subtitle && <p className="text-xs text-text-tertiary mt-1">{subtitle}</p>}
+      <div className={`relative flex flex-col items-center text-center ${logoOnly ? "px-6 py-7" : "p-5"}`}>
+        {logoOnly ? (
+          logo ? (
+            <img
+              src={logo}
+              alt={name}
+              className="h-16 w-full object-contain transition-transform duration-200 group-hover:scale-[1.04] md:h-20"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex min-h-[80px] w-full items-center justify-center text-2xl font-bold text-accent-gold md:min-h-[96px]">
+              {name}
+            </div>
+          )
+        ) : (
+          <>
+            <ProviderAvatar name={name} image={logo} size={56} className="rounded-2xl mb-3 group-hover:scale-105 transform duration-200" />
+            <h3 className="font-semibold text-text-primary text-sm group-hover:text-accent-gold transition-colors">
+              {name}
+            </h3>
+            {subtitle && <p className="text-xs text-text-tertiary mt-1">{subtitle}</p>}
+          </>
+        )}
         {children}
       </div>
 

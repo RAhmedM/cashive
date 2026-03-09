@@ -3,9 +3,23 @@
 
 // Helper to generate a placeholder image URL using the provider's initials
 export function providerImage(name: string): string {
-  // In production, these would be real logo URLs from an asset CDN or offerwall API.
-  // For now, we return a placeholder path that the UI will handle with an initials fallback.
-  return `/providers/${name.toLowerCase().replace(/\s+/g, "-")}.svg`;
+  const normalized = name.toLowerCase().replace(/\s+/g, "-");
+
+  const providerLogoMap: Record<string, string> = {
+    adgem: "/providers/adgem-light.png",
+    lootably: "/providers/lootably.png",
+    timewall: "/providers/timewall.png",
+    "ayet-studios": "/providers/ayet-light.png",
+    adgate: "/providers/adgatemedia-light.svg",
+    adscend: "/providers/adscendmedia-light.svg",
+    "cpx-research": "/providers/cpx-light.svg",
+    primesurveys: "/providers/prime-light.svg",
+    monlix: "/providers/monlix-light.svg",
+    adtowall: "/providers/adtowall-light.svg",
+    "mm-wall": "/providers/mm-wall.png",
+  };
+
+  return providerLogoMap[normalized] || `/providers/${normalized}.svg`;
 }
 
 export function appImage(name: string): string {

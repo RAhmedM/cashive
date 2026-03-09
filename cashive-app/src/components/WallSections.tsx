@@ -34,7 +34,7 @@ function WallSection({
           </button>
         )}
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {children}
       </div>
     </section>
@@ -56,7 +56,7 @@ export default function WallSections() {
             logo={wall.image}
             badge={wall.bonus > 0 ? `+${wall.bonus}%` : undefined}
             badgeColor="#F5A623"
-            subtitle={`${wall.offers} offers`}
+            logoOnly
           />
         ))}
       </WallSection>
@@ -72,7 +72,7 @@ export default function WallSections() {
             logo={wall.image}
             badge={wall.bonus > 0 ? `+${wall.bonus}%` : undefined}
             badgeColor="#F5A623"
-            subtitle={`Avg. ${wall.avgPayout} Honey`}
+            logoOnly
           />
         ))}
       </WallSection>
@@ -88,7 +88,7 @@ export default function WallSections() {
             logo={wall.image}
             badge={wall.bonus > 0 ? `+${wall.bonus}%` : undefined}
             badgeColor="#F5A623"
-            subtitle={`~${wall.perVideo} Honey/video`}
+            logoOnly
           />
         ))}
       </WallSection>
