@@ -1,0 +1,672 @@
+// ============================================================================
+// cashive.gg — Database Schema
+// ============================================================================
+// All monetary values stored as integer Honey units (1000 Honey = $1.00 USD).
+// Never use floating point for money. All calculations use integer arithmetic.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum VipTier {
+  NONE
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum KycStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BalanceDisplay {
+  HONEY
+  USD
+  BOTH
+}
+
+enum TransactionType {
+  OFFER_EARNING
+  SURVEY_EARNING
+  REFERRAL_COMMISSION
+  STREAK_BONUS
+  RACE_PRIZE
+  VIP_BONUS
+  PROMO_CODE
+  SIGNUP_BONUS
+  WITHDRAWAL
+  ADMIN_ADJUSTMENT
+  CHARGEBACK
+}
+
+enum OfferStatus {
+  CREDITED
+  HELD
+  REVERSED
+}
+
+enum WithdrawalMethod {
+  PAYPAL
+  BITCOIN
+  ETHEREUM
+  LITECOIN
+  SOLANA
+  AMAZON_GIFT
+  STEAM_GIFT
+  ROBLOX
+  VISA
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+  FAILED
+}
+
+enum RaceType {
+  DAILY
+  MONTHLY
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_ON_USER
+  RESOLVED
+  CLOSED
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  MODERATOR
+  SUPPORT_AGENT
+}
+
+// ============================================================================
+// USERS
+// ============================================================================
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  emailVerified     Boolean   @default(false)
+  passwordHash      String? // null if social-only login
+  username          String    @unique
+  usernameChangedAt DateTime?
+  avatar            String? // URL to uploaded avatar
+  country           String? // ISO 3166-1 alpha-2, detected from IP at signup
+  language          String    @default("en")
+
+  // Auth / Social OAuth IDs
+  googleId   String? @unique
+  facebookId String? @unique
+  steamId    String? @unique
+  discordId  String? @unique
+
+  // 2FA — secret encrypted at rest via application-level AES-256-GCM
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean @default(false)
+
+  // Balance (integer Honey units — 1000 = $1.00)
+  // This is a cached value. Source of truth is SUM(transactions.amount).
+  balanceHoney   Int @default(0)
+  lifetimeEarned Int @default(0)
+
+  // VIP / Leveling
+  xp      Int     @default(0)
+  level   Int     @default(1)
+  vipTier VipTier @default(NONE)
+
+  // Streaks
+  currentStreak Int       @default(0)
+  lastEarnDate  DateTime?
+  longestStreak Int       @default(0)
+
+  // Referral
+  referralCode String  @unique @default(cuid())
+  referredById String?
+  referredBy   User?   @relation("Referrals", fields: [referredById], references: [id])
+  referrals    User[]  @relation("Referrals")
+  referralTier Int     @default(1) // 1=5%, 2=10%, 3=15%, 4=20%
+
+  // KYC
+  kycStatus      KycStatus @default(NONE)
+  kycDocumentUrl String?
+  kycReviewedAt  DateTime?
+
+  // Anti-fraud — cached score, derived from FraudSignal records
+  fraudScore Float   @default(0)
+  isBanned   Boolean @default(false)
+  banReason  String?
+
+  // Chat moderation
+  chatMuted      Boolean   @default(false)
+  chatMutedUntil DateTime?
+
+  // Privacy settings
+  profilePublic    Boolean @default(true)
+  anonymousInChat  Boolean @default(false)
+  anonymousOnBoard Boolean @default(false)
+
+  // Display prefs
+  balanceDisplay  BalanceDisplay @default(BOTH)
+  chatOpenDefault Boolean        @default(true)
+
+  // Notification preferences (typed JSON)
+  notifEmail  Json @default("{\"earnings\": true, \"withdrawals\": true, \"promotions\": true, \"weekly_summary\": true}")
+  notifPush   Json @default("{\"earnings\": true, \"withdrawals\": true, \"streak_reminder\": true}")
+  notifOnsite Json @default("{\"earnings\": true, \"withdrawals\": true, \"chat_mentions\": true, \"achievements\": true}")
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
+  lastLoginIp String?
+
+  // Relations
+  transactions       Transaction[]
+  withdrawals        Withdrawal[]
+  sessions           Session[]
+  offerCompletions   OfferCompletion[]
+  chatMessages       ChatMessage[]
+  achievements       UserAchievement[]
+  supportTickets     SupportTicket[]
+  notifications      Notification[]
+  surveyProfile      SurveyProfile?
+  fraudSignals       FraudSignal[]
+  deviceFingerprints DeviceFingerprint[]
+  loginAttempts      LoginAttempt[]
+
+  @@index([referredById])
+  @@index([email])
+  @@index([referralCode])
+  @@index([fraudScore])
+}
+
+// ============================================================================
+// AUTH / SESSIONS
+// ============================================================================
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token      String   @unique // opaque session token (crypto.randomBytes)
+  device     String? // "Chrome on Windows", "Safari on iPhone"
+  ip         String?
+  lastActive DateTime @default(now())
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model LoginAttempt {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email      String
+  ip         String
+  success    Boolean
+  failReason String? // "invalid_password", "account_banned", "2fa_failed"
+  createdAt  DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
+  @@index([userId])
+}
+
+// ============================================================================
+// DEVICE FINGERPRINTING (multi-account detection)
+// ============================================================================
+
+model DeviceFingerprint {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fingerprintId String   // FingerprintJS visitorId
+  components    Json? // raw fingerprint components for analysis
+  firstSeenAt   DateTime @default(now())
+  lastSeenAt    DateTime @default(now())
+
+  @@unique([userId, fingerprintId])
+  @@index([fingerprintId]) // query all users with same fingerprint
+}
+
+// ============================================================================
+// FINANCIAL LEDGER
+// ============================================================================
+
+model Transaction {
+  id           String          @id @default(cuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id])
+  type         TransactionType
+  amount       Int // Honey units (positive = credit, negative = debit)
+  balanceAfter Int // snapshot of user balance after this transaction
+
+  // Source discriminator + reference
+  sourceType String? // "offerwall", "withdrawal", "referral", "promo", "race", "streak", "admin"
+  sourceId   String? // ID of the related record (OfferCompletion.id, Withdrawal.id, etc.)
+
+  // Denormalized fields for display (avoid joins for transaction history)
+  offerwallName  String?
+  offerName      String?
+  referralFromId String? // the referred user whose activity triggered this commission
+
+  description String // human-readable: "Completed 'Rise of Kingdoms' on TyrAds"
+  metadata    Json? // extra data (postback payload, etc.)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, type])
+  @@index([type])
+  @@index([sourceType, sourceId])
+}
+
+// ============================================================================
+// OFFERWALLS & OFFERS
+// ============================================================================
+
+model OfferwallProvider {
+  id             String   @id @default(cuid())
+  slug           String   @unique // "torox", "adgem", "lootably"
+  name           String // "Torox"
+  logoUrl        String?
+  postbackSecret String // shared secret for validating postback signatures
+  postbackIps    String[] // whitelisted IP addresses for incoming postbacks
+  bonusPercent   Int      @default(0) // e.g., 80 = "+80%" bonus badge
+  isActive       Boolean  @default(true)
+  isSurveyWall   Boolean  @default(false)
+  isWatchWall    Boolean  @default(false)
+  iframeUrl      String? // base URL for embedding the offerwall
+
+  // Revenue split: what % of offerwall payout we give to users
+  revenueSharePercent Int @default(80) // 80% to user, 20% margin
+
+  offers OfferCompletion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OfferCompletion {
+  id         String            @id @default(cuid())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id])
+  providerId String
+  provider   OfferwallProvider @relation(fields: [providerId], references: [id])
+
+  externalOfferId String // offer ID from the offerwall
+  externalTxId    String @unique // unique transaction ID from postback (dedup key)
+  offerName       String
+
+  // Amounts
+  payoutToUs   Int // what the offerwall pays us (in cents USD)
+  rewardToUser Int // what we credit the user (in Honey)
+  ourMargin    Int // payoutToUs converted to Honey - rewardToUser
+
+  status     OfferStatus @default(CREDITED)
+  reversedAt DateTime?
+
+  // Metadata from postback
+  userIp          String?
+  postbackPayload Json? // raw postback data stored for audit
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([providerId])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// FEATURED OFFERS (Admin-curated)
+// ============================================================================
+
+model FeaturedOffer {
+  id              String  @id @default(cuid())
+  title           String // "Rise of Kingdoms"
+  requirement     String // "Purchase $20 pack"
+  provider        String // "TyrAds"
+  providerLogoUrl String?
+  posterImageUrl  String? // large game poster image
+  appIconUrl      String? // square app icon (fallback)
+  rewardHoney     Int // estimated Honey reward
+  rewardUsd       Float // estimated USD value
+  externalUrl     String? // deep link to the offer
+  category        String // "Game", "App", "Deposit", etc.
+  completions     Int     @default(0) // social proof counter
+  isActive        Boolean @default(true)
+  sortOrder       Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+// ============================================================================
+// WITHDRAWALS
+// ============================================================================
+
+model Withdrawal {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  method      WithdrawalMethod
+  amountHoney Int // Honey deducted
+  amountUsd   Float // dollar value
+  fee         Float            @default(0) // processing fee in USD
+
+  // Payment details (only relevant fields populated based on method)
+  paypalEmail    String?
+  cryptoAddress  String?
+  cryptoCurrency String? // "BTC", "ETH", "LTC", "SOL"
+  giftCardType   String? // "Amazon", "Steam"
+  giftCardEmail  String?
+
+  // Idempotency key for safe payout retries
+  idempotencyKey String @unique @default(cuid())
+
+  // Processing
+  status       WithdrawalStatus @default(PENDING)
+  reviewedBy   String? // admin user ID
+  reviewNote   String?
+  processedAt  DateTime?
+  externalTxId String? // PayPal payout ID, crypto tx hash, etc.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId, status])
+}
+
+// ============================================================================
+// RACES / LEADERBOARDS
+// ============================================================================
+
+model Race {
+  id        String   @id @default(cuid())
+  type      RaceType
+  title     String // "$50 Daily Race"
+  prizePool Float // total prize in USD
+  prizes    Json // [{rank: 1, amount: 10}, {rank: 2, amount: 7}, ...]
+  startsAt  DateTime
+  endsAt    DateTime
+  isActive  Boolean  @default(true)
+
+  entries RaceEntry[]
+
+  createdAt DateTime @default(now())
+
+  @@index([isActive, endsAt])
+}
+
+model RaceEntry {
+  id     String @id @default(cuid())
+  raceId String
+  race   Race   @relation(fields: [raceId], references: [id])
+  userId String
+  points Int    @default(0) // Honey earned during race period
+  rank   Int? // calculated at race end
+  prize  Float? // USD won
+
+  @@unique([raceId, userId])
+  @@index([raceId, points(sort: Desc)])
+}
+
+// ============================================================================
+// CHAT
+// ============================================================================
+
+model ChatMessage {
+  id       String  @id @default(cuid())
+  userId   String
+  user     User    @relation(fields: [userId], references: [id])
+  room     String  @default("general") // "general", "english", "spanish"
+  content  String  @db.VarChar(200)
+  isSystem Boolean @default(false)
+
+  // Moderation
+  isDeleted Boolean @default(false)
+  deletedBy String? // moderator who deleted it
+
+  createdAt DateTime @default(now())
+
+  @@index([room, createdAt])
+}
+
+// ============================================================================
+// ACHIEVEMENTS
+// ============================================================================
+
+model Achievement {
+  id          String @id @default(cuid())
+  slug        String @unique // "first_task", "100_tasks", "first_cashout"
+  name        String // "First Task"
+  description String // "Complete your first task on Cashive"
+  icon        String // icon identifier or URL
+  color       String // hex color for the badge border
+
+  // Criteria (checked programmatically)
+  criteriaType  String // "tasks_completed", "lifetime_earned", "streak_days", etc.
+  criteriaValue Int // threshold: 1, 100, 7, etc.
+
+  users UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  earnedAt      DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+}
+
+// ============================================================================
+// SURVEY PROFILE
+// ============================================================================
+
+model SurveyProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  age        Int?
+  gender     String?
+  education  String?
+  employment String?
+  income     String?
+  interests  String[] // array of interest tags
+  household  Int? // household size
+  children   Boolean?
+
+  completionPercent Int @default(0)
+
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================================
+// PROMO CODES
+// ============================================================================
+
+model PromoCode {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  rewardHoney Int // Honey amount to credit
+  maxUses     Int? // null = unlimited
+  usedCount   Int       @default(0)
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  redemptions PromoCodeRedemption[]
+}
+
+model PromoCodeRedemption {
+  id          String    @id @default(cuid())
+  userId      String
+  promoCodeId String
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id])
+  redeemedAt  DateTime  @default(now())
+
+  @@unique([userId, promoCodeId]) // one redemption per user per code
+}
+
+// ============================================================================
+// SUPPORT
+// ============================================================================
+
+model SupportTicket {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  subject     String
+  description String
+  category    String // "withdrawal", "offer_not_credited", "account", "other"
+  status      TicketStatus @default(OPEN)
+  assignedTo  String? // admin user ID
+
+  messages SupportMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([assignedTo, status])
+}
+
+model SupportMessage {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id])
+  senderId  String // user or admin ID
+  isAdmin   Boolean       @default(false)
+  content   String
+  createdAt DateTime      @default(now())
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+model Notification {
+  id     String  @id @default(cuid())
+  userId String
+  user   User    @relation(fields: [userId], references: [id])
+  type   String // "offer_credited", "withdrawal_complete", "race_ended", "streak_reminder"
+  title  String
+  body   String
+  link   String? // optional URL to navigate to
+  isRead Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead, createdAt])
+}
+
+// ============================================================================
+// ANTI-FRAUD — Signal-based scoring
+// ============================================================================
+
+model FraudSignal {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  signal      String // "vpn_detected", "multi_account_ip", "rapid_completions", etc.
+  score       Float // score impact of this signal (e.g., 25.0)
+  description String // human-readable: "VPN detected at signup from IP 1.2.3.4"
+
+  // Lifecycle
+  isActive    Boolean   @default(true)
+  dismissedBy String? // admin who dismissed this signal (null = not dismissed)
+  dismissedAt DateTime?
+  expiresAt   DateTime? // auto-expire after this date (null = never)
+
+  metadata Json? // extra data (IP, fingerprint, etc.)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isActive])
+  @@index([signal])
+}
+
+// ============================================================================
+// ADMIN
+// ============================================================================
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(MODERATOR)
+  name         String
+
+  createdAt DateTime @default(now())
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String // "ban_user", "approve_withdrawal", "delete_chat_message"
+  targetType String? // "user", "withdrawal", "chat_message"
+  targetId   String?
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt])
+  @@index([targetType, targetId])
+}
