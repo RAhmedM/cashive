@@ -23,5 +23,22 @@ module.exports = {
       // Memory limit — restart if exceeded
       max_memory_restart: "512M",
     },
+    {
+      name: "cashive-studio",
+      script: "node_modules/.bin/prisma",
+      args: "studio --browser none --port 5555",
+      cwd: "/root/cashive",
+      instances: 1,
+      exec_mode: "fork",
+      // Restart policy
+      max_restarts: 5,
+      min_uptime: "5s",
+      restart_delay: 3000,
+      // Logging
+      error_file: "/root/cashive/logs/studio-error.log",
+      out_file: "/root/cashive/logs/studio-out.log",
+      merge_logs: true,
+      log_date_format: "YYYY-MM-DD HH:mm:ss Z",
+    },
   ],
 };
