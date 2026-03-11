@@ -4,12 +4,12 @@ import type { NextRequest } from "next/server";
 /**
  * Next.js Edge Middleware — Route protection.
  *
- * Checks for the `cashive_session` cookie:
- * - Unauthenticated users accessing protected routes → redirect to /login
- * - Authenticated users accessing auth pages (/login, /register) → redirect to /
+ * Handles two separate auth flows:
+ * 1. User auth: `cashive_session` cookie for user-facing pages
+ * 2. Admin auth: `cashive_admin_session` cookie for /admin/* pages
  *
  * Note: This only checks cookie *presence*. The actual session validation
- * happens server-side in the API routes via `withAuth`.
+ * happens server-side in the API routes via `withAuth` / `withAdmin`.
  */
 
 const PUBLIC_PATHS = new Set(["/login", "/register"]);
@@ -31,6 +31,32 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ── Admin routes ──────────────────────────────────────────────
+  if (pathname.startsWith("/admin")) {
+    const hasAdminSession = request.cookies.has("cashive_admin_session");
+
+    // Admin login page is public (for admins)
+    if (pathname === "/admin/login") {
+      // Already logged in? Redirect to admin dashboard
+      if (hasAdminSession) {
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
+      return NextResponse.next();
+    }
+
+    // All other admin pages require admin session
+    if (!hasAdminSession) {
+      const loginUrl = new URL("/admin/login", request.url);
+      if (pathname !== "/admin") {
+        loginUrl.searchParams.set("redirect", pathname);
+      }
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return NextResponse.next();
+  }
+
+  // ── User routes ───────────────────────────────────────────────
   const hasSession = request.cookies.has("cashive_session");
 
   // Authenticated user trying to access auth pages → redirect to dashboard

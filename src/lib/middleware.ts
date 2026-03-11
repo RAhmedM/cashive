@@ -5,8 +5,13 @@
  */
 import { NextResponse } from "next/server";
 import { getSessionUser, getClientIp } from "./auth";
+import {
+  getAdminSessionUser,
+  hasRole,
+  type AuthenticatedAdmin,
+} from "./admin-auth";
 import { checkRateLimit } from "./redis";
-import type { User } from "@/generated/prisma";
+import type { User, AdminRole } from "@/generated/prisma";
 
 // ---- Standard API Responses ----
 
@@ -53,24 +58,33 @@ export function withAuth(handler: AuthHandler) {
 
 /**
  * Wraps a route handler to require admin authentication.
- * Uses separate admin auth (AdminUser model) — placeholder for now,
- * falls back to checking if user email matches admin list.
+ * Uses the AdminUser model with separate session management.
+ * Optionally enforces a minimum role level.
  */
-export function withAdmin(handler: AuthHandler) {
-  return withAuth(async (request, user, params) => {
-    // For Phase 1, check a simple env-based admin list.
-    // Phase 7 will implement proper AdminUser authentication.
-    const adminEmails = (process.env.ADMIN_EMAILS ?? "")
-      .split(",")
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
+type AdminHandler = (
+  request: Request,
+  admin: AuthenticatedAdmin,
+  params?: Record<string, string>
+) => Promise<NextResponse>;
 
-    if (!adminEmails.includes(user.email.toLowerCase())) {
-      return jsonError("Admin access required", 403);
+export function withAdmin(handler: AdminHandler, requiredRole?: AdminRole) {
+  return async (
+    request: Request,
+    context?: { params?: Promise<Record<string, string>> }
+  ): Promise<NextResponse> => {
+    const admin = await getAdminSessionUser();
+    if (!admin) {
+      return jsonError("Admin authentication required", 401);
     }
 
-    return handler(request, user, params);
-  });
+    // Check role if specified
+    if (requiredRole && !hasRole(admin.role, requiredRole)) {
+      return jsonError("Insufficient permissions", 403);
+    }
+
+    const params = context?.params ? await context.params : undefined;
+    return handler(request, admin, params);
+  };
 }
 
 // ---- Rate Limiting Middleware ----

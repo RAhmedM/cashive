@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 
   // If authenticated, include user's position in each race
   const sessionUser = await getSessionUser();
-  let userEntries: Map<string, { points: number; rank: number }> = new Map();
+  const userEntries: Map<string, { points: number; rank: number }> = new Map();
 
   if (sessionUser) {
     const entries = await db.raceEntry.findMany({
