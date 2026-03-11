@@ -12,6 +12,7 @@
  * - Promo codes
  * - Admin user
  */
+import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
