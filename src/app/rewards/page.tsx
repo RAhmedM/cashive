@@ -1,8 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import { vipData, vipTiers, dailyStreak } from "@/data/mockData";
+import BeeLoader from "@/components/BeeLoader";
+import { useApi } from "@/hooks/useApi";
+import { useMutate } from "@/hooks/useApi";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 import { HoneyIcon } from "@/components/Icons";
 import { ProgressBar } from "@/components/SharedComponents";
 import {
@@ -18,9 +22,153 @@ import {
   Globe,
 } from "lucide-react";
 
+// ---- API response types ----
+
+interface VipTierInfo {
+  tier: string;
+  name: string;
+  bonusPercent: number;
+  color: string;
+  benefits: string[];
+}
+
+interface AllTierInfo {
+  tier: string;
+  name: string;
+  bonusPercent: number;
+  color: string;
+  benefits: string[];
+  monthlyThresholdHoney: number;
+  monthlyThresholdUsd: number;
+  isCurrent: boolean;
+  isReached: boolean;
+}
+
+interface VipResponse {
+  vip: {
+    currentTier: VipTierInfo;
+    monthlyEarningsHoney: number;
+    monthlyEarningsUsd: number;
+    nextTier: {
+      tier: string;
+      name: string;
+      bonusPercent: number;
+      color: string;
+      thresholdHoney: number;
+      thresholdUsd: number;
+      remainingHoney: number;
+      progressPercent: number;
+    } | null;
+    level: {
+      level: number;
+      currentXp: number;
+      xpForCurrentLevel: number;
+      xpForNextLevel: number;
+      progressPercent: number;
+    };
+    lifetimeEarnedHoney: number;
+    lifetimeEarnedUsd: number;
+    allTiers: AllTierInfo[];
+  } | null;
+}
+
+interface StreakDay {
+  day: number;
+  reward: number;
+  completed: boolean;
+  isCurrent: boolean;
+}
+
+interface StreakResponse {
+  streak: {
+    currentStreak: number;
+    longestStreak: number;
+    lastEarnDate: string | null;
+    earnedToday: boolean;
+    days: StreakDay[];
+    nextMilestones: {
+      sevenDay: { target: number; daysRemaining: number; bonus: number };
+      thirtyDay: { target: number; daysRemaining: number; bonus: number };
+    };
+  } | null;
+}
+
+// ---- Fallback data ----
+
+const fallbackTiers: AllTierInfo[] = [
+  { tier: "BRONZE", name: "Bronze", bonusPercent: 2, color: "#CD7F32", benefits: ["2% bonus on all offers", "Standard support"], monthlyThresholdHoney: 0, monthlyThresholdUsd: 0, isCurrent: true, isReached: true },
+  { tier: "SILVER", name: "Silver", bonusPercent: 5, color: "#A8B2BD", benefits: ["5% bonus on all offers", "Priority support", "Early access to new offers"], monthlyThresholdHoney: 10000, monthlyThresholdUsd: 10, isCurrent: false, isReached: false },
+  { tier: "GOLD", name: "Gold", bonusPercent: 8, color: "#F5A623", benefits: ["8% bonus on all offers", "VIP support", "Exclusive offers", "Lower withdrawal mins"], monthlyThresholdHoney: 50000, monthlyThresholdUsd: 50, isCurrent: false, isReached: false },
+  { tier: "PLATINUM", name: "Platinum", bonusPercent: 12, color: "#E5E4E2", benefits: ["12% bonus on all offers", "Dedicated support", "All Gold benefits", "Custom withdrawal limits"], monthlyThresholdHoney: 150000, monthlyThresholdUsd: 150, isCurrent: false, isReached: false },
+];
+
+const fallbackStreak: NonNullable<StreakResponse["streak"]> = {
+  currentStreak: 3,
+  longestStreak: 7,
+  lastEarnDate: null,
+  earnedToday: false,
+  days: [
+    { day: 1, reward: 10, completed: true, isCurrent: false },
+    { day: 2, reward: 15, completed: true, isCurrent: false },
+    { day: 3, reward: 20, completed: true, isCurrent: false },
+    { day: 4, reward: 25, completed: false, isCurrent: true },
+    { day: 5, reward: 30, completed: false, isCurrent: false },
+    { day: 6, reward: 40, completed: false, isCurrent: false },
+    { day: 7, reward: 100, completed: false, isCurrent: false },
+  ],
+  nextMilestones: {
+    sevenDay: { target: 7, daysRemaining: 4, bonus: 500 },
+    thirtyDay: { target: 30, daysRemaining: 27, bonus: 5000 },
+  },
+};
+
 export default function RewardsPage() {
-  const currentTierData = vipTiers.find((t) => t.name === vipData.currentTier);
-  const nextTier = vipTiers[vipTiers.findIndex((t) => t.name === vipData.currentTier) + 1];
+  const { data: vipData, loading: vipLoading } = useApi<VipResponse>("/api/user/me/vip");
+  const { data: streakData, loading: streakLoading } = useApi<StreakResponse>("/api/user/me/streak");
+  const { refreshUser } = useAuth();
+
+  // Promo code state
+  const [promoCode, setPromoCode] = useState("");
+  const [promoMessage, setPromoMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const { mutate: redeemMutate, loading: redeemLoading } = useMutate();
+
+  const handleRedeemPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoMessage(null);
+
+    const result = await redeemMutate(() =>
+      api.post<{ message: string; reward: { honey: number; usd: number } }>("/api/promo/redeem", { code: promoCode.trim() })
+    );
+
+    if (result) {
+      setPromoMessage({ type: "success", text: `${result.reward.honey.toLocaleString()} Honey added to your balance!` });
+      setPromoCode("");
+      refreshUser();
+    } else {
+      setPromoMessage({ type: "error", text: "Invalid or expired promo code" });
+    }
+  };
+
+  const loading = vipLoading || streakLoading;
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-24">
+          <BeeLoader size="lg" label="Loading rewards..." />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Map API data or use fallbacks
+  const vip = vipData?.vip;
+  const currentTierData = vip?.currentTier ?? fallbackTiers[0];
+  const nextTier = vip?.nextTier ?? null;
+  const allTiers = vip?.allTiers?.length ? vip.allTiers : fallbackTiers;
+  const monthlyEarnings = vip?.monthlyEarningsHoney ?? 0;
+
+  const streak = streakData?.streak ?? fallbackStreak!;
 
   return (
     <AppLayout>
@@ -34,28 +182,28 @@ export default function RewardsPage() {
               <div className="relative inline-flex items-center justify-center">
                 <Hexagon
                   className="w-14 h-14"
-                  style={{ color: currentTierData?.color }}
-                  fill={`${currentTierData?.color}20`}
+                  style={{ color: currentTierData.color }}
+                  fill={`${currentTierData.color}20`}
                 />
-                <Crown className="w-6 h-6 absolute" style={{ color: currentTierData?.color }} />
+                <Crown className="w-6 h-6 absolute" style={{ color: currentTierData.color }} />
               </div>
               <div>
                 <p className="text-xs text-text-secondary">Your VIP Tier</p>
-                <h1 className="font-heading text-2xl font-bold" style={{ color: currentTierData?.color }}>
-                  {vipData.currentTier}
+                <h1 className="font-heading text-2xl font-bold" style={{ color: currentTierData.color }}>
+                  {currentTierData.name}
                 </h1>
               </div>
             </div>
             <p className="text-sm text-text-secondary mb-4">
-              You&apos;re earning a <span className="text-accent-gold font-semibold">{currentTierData?.bonus}% bonus</span> on all offers.
+              You&apos;re earning a <span className="text-accent-gold font-semibold">{currentTierData.bonusPercent}% bonus</span> on all offers.
               {nextTier && (
-                <> Earn {(nextTier.threshold - vipData.currentPoints).toLocaleString()} more Honey this month to reach {nextTier.name}.</>
+                <> Earn {nextTier.remainingHoney.toLocaleString()} more Honey this month to reach {nextTier.name}.</>
               )}
             </p>
             {nextTier && (
               <ProgressBar
-                value={vipData.currentPoints}
-                max={nextTier.threshold}
+                value={monthlyEarnings}
+                max={nextTier.thresholdHoney}
                 showLabel
               />
             )}
@@ -65,7 +213,7 @@ export default function RewardsPage() {
           <div className="bg-bg-elevated rounded-xl border border-border p-4 md:w-64 shrink-0">
             <h3 className="text-xs text-text-secondary font-semibold uppercase tracking-wider mb-2">Your Benefits</h3>
             <ul className="space-y-2">
-              {currentTierData?.benefits.map((b, i) => (
+              {currentTierData.benefits.map((b, i) => (
                 <li key={i} className="flex items-center gap-2 text-xs text-text-primary">
                   <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
                   {b}
@@ -82,22 +230,19 @@ export default function RewardsPage() {
         <p className="text-sm text-text-secondary mb-4">Earn Honey from offers to climb the tiers each month</p>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {vipTiers.map((tier) => {
-            const isCurrent = tier.name === vipData.currentTier;
-            const isAchieved = vipData.currentPoints >= tier.threshold;
-
+          {allTiers.map((tier) => {
             return (
               <div
                 key={tier.name}
                 className={`relative bg-bg-surface rounded-xl border p-5 transition-all ${
-                  isCurrent
+                  tier.isCurrent
                     ? "border-accent-gold/40 ring-1 ring-accent-gold/20"
-                    : isAchieved
+                    : tier.isReached
                     ? "border-success/20"
                     : "border-border"
                 }`}
               >
-                {isCurrent && (
+                {tier.isCurrent && (
                   <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-accent-gold text-bg-deepest text-[10px] font-bold rounded-full whitespace-nowrap">
                     CURRENT
                   </div>
@@ -117,16 +262,16 @@ export default function RewardsPage() {
                   <h3 className="font-heading font-bold text-sm mb-0.5" style={{ color: tier.color }}>
                     {tier.name}
                   </h3>
-                  <p className="font-mono font-bold text-2xl text-text-primary mb-1">+{tier.bonus}%</p>
+                  <p className="font-mono font-bold text-2xl text-text-primary mb-1">+{tier.bonusPercent}%</p>
                   <p className="text-[10px] text-text-tertiary mb-3">
-                    {tier.threshold === 0 ? "Default" : `${tier.threshold.toLocaleString()} Honey/mo`}
+                    {tier.monthlyThresholdHoney === 0 ? "Default" : `${tier.monthlyThresholdHoney.toLocaleString()} Honey/mo`}
                   </p>
 
                   <ul className="space-y-1.5 text-left">
                     {tier.benefits.map((b, i) => (
                       <li key={i} className="flex items-start gap-1.5 text-[11px]">
-                        <CheckCircle2 className={`w-3 h-3 shrink-0 mt-0.5 ${isAchieved ? "text-success" : "text-text-tertiary"}`} />
-                        <span className={isAchieved ? "text-text-secondary" : "text-text-tertiary"}>{b}</span>
+                        <CheckCircle2 className={`w-3 h-3 shrink-0 mt-0.5 ${tier.isReached ? "text-success" : "text-text-tertiary"}`} />
+                        <span className={tier.isReached ? "text-text-secondary" : "text-text-tertiary"}>{b}</span>
                       </li>
                     ))}
                   </ul>
@@ -141,13 +286,12 @@ export default function RewardsPage() {
       <section className="mb-8">
         <h2 className="font-heading text-lg font-bold text-text-primary mb-1">Daily Login Streak</h2>
         <p className="text-sm text-text-secondary mb-4">
-          Log in daily to earn bonus Honey. Current streak: <span className="text-accent-gold font-semibold">{dailyStreak.currentStreak} days</span>
+          Log in daily to earn bonus Honey. Current streak: <span className="text-accent-gold font-semibold">{streak.currentStreak} days</span>
         </p>
 
         <div className="bg-bg-surface rounded-xl border border-border p-5">
           <div className="flex items-center justify-between gap-2 overflow-x-auto hide-scrollbar">
-            {dailyStreak.days.map((day, i) => {
-              const isToday = i === dailyStreak.currentStreak;
+            {streak.days.map((day) => {
               return (
                 <div key={day.day} className="flex flex-col items-center gap-2 min-w-[60px]">
                   {/* Hex node */}
@@ -156,14 +300,14 @@ export default function RewardsPage() {
                       className={`w-12 h-12 ${
                         day.completed
                           ? "text-accent-gold fill-accent-gold/20"
-                          : isToday
+                          : day.isCurrent
                           ? "text-accent-gold/50 fill-accent-gold/5"
                           : "text-border fill-bg-elevated"
                       }`}
                     />
                     {day.completed ? (
                       <CheckCircle2 className="w-5 h-5 absolute text-accent-gold" />
-                    ) : isToday ? (
+                    ) : day.isCurrent ? (
                       <Gift className="w-5 h-5 absolute text-accent-gold/60" />
                     ) : (
                       <Lock className="w-4 h-4 absolute text-text-tertiary" />
@@ -172,7 +316,7 @@ export default function RewardsPage() {
 
                   {/* Label */}
                   <div className="text-center">
-                    <p className={`text-[10px] font-semibold ${day.completed ? "text-accent-gold" : isToday ? "text-text-primary" : "text-text-tertiary"}`}>
+                    <p className={`text-[10px] font-semibold ${day.completed ? "text-accent-gold" : day.isCurrent ? "text-text-primary" : "text-text-tertiary"}`}>
                       Day {day.day}
                     </p>
                     <div className="flex items-center gap-0.5 justify-center">
@@ -182,20 +326,15 @@ export default function RewardsPage() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Connector line */}
-                  {i < dailyStreak.days.length - 1 && (
-                    <div className="hidden" /> // Connector handled by flex gap
-                  )}
                 </div>
               );
             })}
           </div>
 
-          {dailyStreak.currentStreak < 7 && (
+          {!streak.earnedToday && streak.currentStreak < 7 && (
             <div className="mt-4 text-center">
               <button className="px-5 py-2.5 bg-accent-gold text-bg-deepest font-semibold text-sm rounded-lg hover:bg-accent-gold-hover active:scale-95 transition-all">
-                Claim Day {dailyStreak.currentStreak + 1} Bonus
+                Claim Day {streak.currentStreak + 1} Bonus
               </button>
             </div>
           )}
@@ -218,12 +357,24 @@ export default function RewardsPage() {
             <input
               type="text"
               placeholder="Enter promo code"
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleRedeemPromo()}
               className="flex-1 bg-bg-elevated border border-border rounded-lg px-4 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary outline-none focus:border-accent-gold/30 transition-colors font-mono"
             />
-            <button className="px-5 py-2.5 bg-accent-gold text-bg-deepest font-semibold text-sm rounded-lg hover:bg-accent-gold-hover active:scale-95 transition-all shrink-0">
-              Redeem
+            <button
+              onClick={handleRedeemPromo}
+              disabled={redeemLoading || !promoCode.trim()}
+              className="px-5 py-2.5 bg-accent-gold text-bg-deepest font-semibold text-sm rounded-lg hover:bg-accent-gold-hover active:scale-95 transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {redeemLoading ? "Redeeming..." : "Redeem"}
             </button>
           </div>
+          {promoMessage && (
+            <p className={`mt-2 text-xs font-medium ${promoMessage.type === "success" ? "text-success" : "text-danger"}`}>
+              {promoMessage.text}
+            </p>
+          )}
         </div>
       </section>
 

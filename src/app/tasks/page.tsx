@@ -2,9 +2,29 @@
 
 import React, { useState, useMemo } from "react";
 import AppLayout from "@/components/AppLayout";
-import { allTasks, featuredTasks } from "@/data/mockData";
+import BeeLoader from "@/components/BeeLoader";
+import { allTasks, featuredTasks as mockFeaturedTasks } from "@/data/mockData";
+import { useApi } from "@/hooks/useApi";
 import { FilterPill, EmptyState, TaskRow } from "@/components/SharedComponents";
 import { Search, ChevronLeft, ChevronRight, SlidersHorizontal, Zap, ArrowUpDown } from "lucide-react";
+
+// ─── Types ─────────────────────────────────────────────────────────
+
+interface FeaturedOffer {
+  id: string;
+  title: string;
+  requirement: string;
+  providerName: string;
+  providerLogoUrl: string | null;
+  posterImageUrl: string | null;
+  appIconUrl: string | null;
+  rewardHoney: number;
+  externalUrl: string | null;
+  category: string;
+  completions: number;
+}
+
+// ─── Constants ─────────────────────────────────────────────────────
 
 const categories = ["All", "Game", "Apps", "Deposits", "Casino", "Free Trials", "Sign-ups", "Quizzes"];
 const sortOptions = ["Popular", "Highest Payout", "Lowest Payout", "Newest"];
@@ -12,6 +32,8 @@ const difficultyOptions = ["All", "Easy", "Medium", "Hard"];
 const providers = ["All", "TyrAds", "AdGem", "Torox", "Lootably", "RevU", "OfferToro", "AdGate"];
 
 export default function TasksPage() {
+  const { data: featuredData, loading: featuredLoading } = useApi<{ offers: FeaturedOffer[]; categories: string[] }>("/api/offers/featured");
+
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [sort, setSort] = useState("Popular");
@@ -28,6 +50,24 @@ export default function TasksPage() {
       behavior: "smooth",
     });
   };
+
+  // Map API featured offers to TaskRow props, fallback to mock
+  const featuredTasks = useMemo(() => {
+    const apiOffers = featuredData?.offers;
+    if (apiOffers && apiOffers.length > 0) {
+      return apiOffers.map((offer) => ({
+        id: offer.id,
+        title: offer.title,
+        requirement: offer.requirement,
+        provider: offer.providerName,
+        image: offer.appIconUrl || undefined,
+        reward: offer.rewardHoney,
+        category: offer.category,
+      }));
+    }
+    // Fallback to mock data
+    return mockFeaturedTasks;
+  }, [featuredData]);
 
   const filtered = useMemo(() => {
     let tasks = [...allTasks];
@@ -157,7 +197,7 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* Featured tasks strip — using TaskRow featured variant */}
+      {/* Featured tasks strip */}
       <section className="mb-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-heading text-lg font-bold text-text-primary flex items-center gap-2">
@@ -173,21 +213,27 @@ export default function TasksPage() {
             </button>
           </div>
         </div>
-        <div ref={featuredScrollRef} className="flex gap-3 overflow-x-auto hide-scrollbar snap-x snap-mandatory pb-2">
-          {featuredTasks.map((task) => (
-            <TaskRow
-              key={task.id}
-              variant="featured"
-              icon={task.image}
-              title={task.title}
-              description={task.requirement}
-              provider={task.provider}
-              reward={task.reward}
-              difficulty={task.difficulty}
-              estimatedTime={task.estimatedTime}
-            />
-          ))}
-        </div>
+        {featuredLoading ? (
+          <div className="flex justify-center py-8">
+            <BeeLoader />
+          </div>
+        ) : (
+          <div ref={featuredScrollRef} className="flex gap-3 overflow-x-auto hide-scrollbar snap-x snap-mandatory pb-2">
+            {featuredTasks.map((task) => (
+              <TaskRow
+                key={task.id}
+                variant="featured"
+                icon={task.image}
+                title={task.title}
+                description={task.requirement}
+                provider={task.provider}
+                reward={task.reward}
+                difficulty={"difficulty" in task ? (task as { difficulty: string }).difficulty : undefined}
+                estimatedTime={"estimatedTime" in task ? (task as { estimatedTime: string }).estimatedTime : undefined}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Results count */}
@@ -207,7 +253,7 @@ export default function TasksPage() {
         </button>
       </div>
 
-      {/* Task feed — using TaskRow compact variant */}
+      {/* Task feed */}
       {visible.length === 0 ? (
         <EmptyState
           title="No tasks found"

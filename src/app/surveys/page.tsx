@@ -1,13 +1,52 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import AppLayout from "@/components/AppLayout";
-import { surveyWalls, surveyStats } from "@/data/mockData";
+import BeeLoader from "@/components/BeeLoader";
+import { surveyWalls as mockSurveyWalls, surveyStats } from "@/data/mockData";
+import { useApi } from "@/hooks/useApi";
+import { useAuth } from "@/contexts/AuthContext";
 import { HoneyIcon } from "@/components/Icons";
 import { ProviderTile, StatCard, ProgressBar, StepCards } from "@/components/SharedComponents";
 import { BarChart3, CheckCircle2, TrendingUp, ClipboardCheck, UserCircle, MousePointerClick } from "lucide-react";
 
+// ─── Types ─────────────────────────────────────────────────────────
+
+interface Provider {
+  id: string;
+  slug: string;
+  name: string;
+  logoUrl: string | null;
+  type: string;
+  bonusBadgePct: number;
+  iframeBaseUrl: string | null;
+}
+
 export default function SurveysPage() {
+  const { user } = useAuth();
+  const { data: providersData, loading } = useApi<{ providers: Provider[] }>("/api/offers/providers");
+
+  // Filter to SURVEY-type providers, fallback to mock data
+  const surveyWalls = useMemo(() => {
+    const apiProviders = providersData?.providers?.filter((p) => p.type === "SURVEY");
+    if (apiProviders && apiProviders.length > 0) {
+      return apiProviders.map((p) => ({
+        id: p.id,
+        name: p.name,
+        bonus: p.bonusBadgePct,
+        image: p.logoUrl || undefined,
+        // These fields don't exist in the API — use reasonable defaults
+        avgPayout: 650,
+        available: 0,
+        payoutRange: "Varies",
+      }));
+    }
+    // Fallback to mock data for demo/dev
+    return mockSurveyWalls;
+  }, [providersData]);
+
+  const profileCompletion = user?.stats.surveyProfileCompletion ?? surveyStats.profileCompletion;
+
   return (
     <AppLayout>
       {/* Page header */}
@@ -18,7 +57,7 @@ export default function SurveysPage() {
         </p>
       </div>
 
-      {/* Survey stats bar */}
+      {/* Survey stats bar — no API endpoint, keep mock */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <StatCard
           icon={<BarChart3 className="w-5 h-5" />}
@@ -52,7 +91,7 @@ export default function SurveysPage() {
             <p className="text-xs text-text-secondary mb-3">
               Complete your profile to qualify for more surveys and earn higher payouts
             </p>
-            <ProgressBar value={surveyStats.profileCompletion} max={100} showLabel />
+            <ProgressBar value={profileCompletion} max={100} showLabel />
             <div className="mt-3">
               <button className="px-4 py-2 bg-accent-gold text-bg-deepest font-semibold text-sm rounded-lg hover:bg-accent-gold-hover active:scale-95 transition-all">
                 Complete Profile
@@ -67,28 +106,34 @@ export default function SurveysPage() {
         <h2 className="font-heading text-lg font-bold text-text-primary mb-1">Survey Providers</h2>
         <p className="text-sm text-text-secondary mb-4">Choose a provider to start earning</p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {surveyWalls.map((wall) => (
-            <ProviderTile
-              key={wall.id}
-              logo={wall.image}
-              name={wall.name}
-              badge={wall.bonus > 0 ? `+${wall.bonus}%` : undefined}
-              badgeColor="#F5A623"
-              subtitle={`${wall.available} surveys available`}
-            >
-              <div className="flex items-center gap-1 text-xs text-text-secondary mt-2">
-                <span>Avg.</span>
-                <HoneyIcon className="w-3 h-3" />
-                <span className="font-mono font-semibold text-accent-gold">{wall.avgPayout}</span>
-                <span className="text-text-tertiary ml-1">{wall.payoutRange}</span>
-              </div>
-              <button className="w-full mt-3 py-2.5 rounded-lg bg-accent-gold text-bg-deepest font-semibold text-sm hover:bg-accent-gold-hover active:scale-[0.98] transition-all">
-                Take Surveys
-              </button>
-            </ProviderTile>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <BeeLoader />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {surveyWalls.map((wall) => (
+              <ProviderTile
+                key={wall.id}
+                logo={wall.image}
+                name={wall.name}
+                badge={wall.bonus > 0 ? `+${wall.bonus}%` : undefined}
+                badgeColor="#F5A623"
+                subtitle={wall.available > 0 ? `${wall.available} surveys available` : "Surveys available"}
+              >
+                <div className="flex items-center gap-1 text-xs text-text-secondary mt-2">
+                  <span>Avg.</span>
+                  <HoneyIcon className="w-3 h-3" />
+                  <span className="font-mono font-semibold text-accent-gold">{wall.avgPayout}</span>
+                  <span className="text-text-tertiary ml-1">{wall.payoutRange}</span>
+                </div>
+                <button className="w-full mt-3 py-2.5 rounded-lg bg-accent-gold text-bg-deepest font-semibold text-sm hover:bg-accent-gold-hover active:scale-[0.98] transition-all">
+                  Take Surveys
+                </button>
+              </ProviderTile>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* How it works */}
@@ -104,7 +149,7 @@ export default function SurveysPage() {
             {
               icon: <MousePointerClick className="w-6 h-6" />,
               title: "Answer Questions",
-              description: "Complete surveys honestly — most take 5-20 minutes",
+              description: "Complete surveys honestly -- most take 5-20 minutes",
             },
             {
               icon: <TrendingUp className="w-6 h-6" />,

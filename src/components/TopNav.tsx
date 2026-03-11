@@ -15,6 +15,7 @@ import {
   Flame,
 } from "lucide-react";
 import { BeeIcon, HoneyIcon } from "./Icons";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TopNavProps {
   onMenuToggle: () => void;
@@ -24,6 +25,15 @@ interface TopNavProps {
 export default function TopNav({ onMenuToggle, sidebarWidth }: TopNavProps) {
   const [searchFocused, setSearchFocused] = useState(false);
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  const initials = user ? user.username.slice(0, 2).toUpperCase() : "?";
+  const balanceFormatted = user
+    ? user.balanceHoney.toLocaleString()
+    : "---";
+  const streakText = user && user.currentStreak > 0
+    ? `${user.currentStreak}-Day Streak`
+    : null;
 
   return (
     <>
@@ -67,14 +77,16 @@ export default function TopNav({ onMenuToggle, sidebarWidth }: TopNavProps) {
         <div className="flex-1 sm:hidden" />
 
         <div className="flex items-center gap-3">
-          <div className="hidden items-center gap-1.5 rounded-lg border border-accent-gold/20 bg-accent-gold/10 px-3 py-1.5 md:flex">
-            <Flame className="w-4 h-4 text-accent-gold" />
-            <span className="text-xs font-semibold text-accent-gold">4-Day Streak</span>
-          </div>
+          {streakText && (
+            <div className="hidden items-center gap-1.5 rounded-lg border border-accent-gold/20 bg-accent-gold/10 px-3 py-1.5 md:flex">
+              <Flame className="w-4 h-4 text-accent-gold" />
+              <span className="text-xs font-semibold text-accent-gold">{streakText}</span>
+            </div>
+          )}
 
           <div className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-bg-elevated px-3 py-1.5 transition-colors hover:border-accent-gold/30">
             <HoneyIcon className="w-5 h-5" />
-            <span className="font-mono text-sm font-semibold text-accent-gold">12,450</span>
+            <span className="font-mono text-sm font-semibold text-accent-gold">{balanceFormatted}</span>
           </div>
 
           <button className="relative rounded-lg p-2 text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary">
@@ -83,7 +95,7 @@ export default function TopNav({ onMenuToggle, sidebarWidth }: TopNavProps) {
           </button>
 
           <Link href="/profile" className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-gold/20 text-xs font-bold text-accent-gold transition-colors hover:bg-accent-gold/30">
-            JD
+            {initials}
           </Link>
         </div>
       </header>

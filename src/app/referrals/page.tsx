@@ -2,7 +2,8 @@
 
 import React from "react";
 import AppLayout from "@/components/AppLayout";
-import { referralStats, commissionTiers, referredUsers } from "@/data/mockData";
+import BeeLoader from "@/components/BeeLoader";
+import { useApi } from "@/hooks/useApi";
 import { StatCard, CopyButton, StepCards, ProgressBar, DataTable, HexBadge } from "@/components/SharedComponents";
 import {
   Users,
@@ -18,8 +19,114 @@ import {
   Megaphone,
 } from "lucide-react";
 
+// ---- API response types ----
+
+interface ReferralTier {
+  tier: number;
+  name: string;
+  commissionRate: number;
+  commissionPercent: number;
+  requiredActive: number;
+  isCurrent: boolean;
+}
+
+interface ReferredUser {
+  username: string;
+  joinedAt: string;
+  theirEarningsHoney: number;
+  theirEarningsUsd: number;
+  yourCommissionHoney: number;
+  yourCommissionUsd: number;
+  offersCompleted: number;
+}
+
+interface ReferralsResponse {
+  referrals: {
+    stats: {
+      totalReferrals: number;
+      activeThisMonth: number;
+      totalEarnedHoney: number;
+      totalEarnedUsd: number;
+    };
+    referralCode: string;
+    currentTier: {
+      tier: number;
+      name: string;
+      commissionRate: number;
+      commissionPercent: number;
+    };
+    nextTier: {
+      tier: number;
+      name: string;
+      commissionRate: number;
+      commissionPercent: number;
+      requiredActive: number;
+      currentActive: number;
+      remaining: number;
+      progressPercent: number;
+    } | null;
+    allTiers: ReferralTier[];
+    users: ReferredUser[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  } | null;
+}
+
+// ---- Fallback data ----
+
+const fallbackStats = {
+  totalReferrals: 0,
+  activeThisMonth: 0,
+  totalEarnedHoney: 0,
+  totalEarnedUsd: 0,
+};
+
+const fallbackCurrentTier = {
+  tier: 1,
+  name: "Starter",
+  commissionRate: 0.05,
+  commissionPercent: 5,
+};
+
+const fallbackTiers: ReferralTier[] = [
+  { tier: 1, name: "Starter", commissionRate: 0.05, commissionPercent: 5, requiredActive: 0, isCurrent: true },
+  { tier: 2, name: "Bronze", commissionRate: 0.10, commissionPercent: 10, requiredActive: 5, isCurrent: false },
+  { tier: 3, name: "Silver", commissionRate: 0.15, commissionPercent: 15, requiredActive: 15, isCurrent: false },
+  { tier: 4, name: "Gold", commissionRate: 0.20, commissionPercent: 20, requiredActive: 30, isCurrent: false },
+];
+
+const tierColors: Record<string, string> = {
+  Starter: "#9CA3AF",
+  Bronze: "#CD7F32",
+  Silver: "#A8B2BD",
+  Gold: "#F5A623",
+};
+
 export default function ReferralsPage() {
-  type ReferredUser = (typeof referredUsers)[number];
+  const { data, loading } = useApi<ReferralsResponse>("/api/user/me/referrals");
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-24">
+          <BeeLoader size="lg" label="Loading referral data..." />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const ref = data?.referrals;
+  const stats = ref?.stats ?? fallbackStats;
+  const currentTier = ref?.currentTier ?? fallbackCurrentTier;
+  const nextTier = ref?.nextTier ?? null;
+  const allTiers = ref?.allTiers?.length ? ref.allTiers : fallbackTiers;
+  const users = ref?.users ?? [];
+  const referralCode = ref?.referralCode ?? "CASHIVE";
+  const referralLink = `https://cashive.gg/?ref=${referralCode}`;
 
   const referralColumns = [
     {
@@ -36,7 +143,7 @@ export default function ReferralsPage() {
       mobileLabel: "Joined",
       render: (user: ReferredUser) => (
         <span className="text-sm text-text-secondary">
-          {new Date(user.joined).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          {new Date(user.joinedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </span>
       ),
     },
@@ -45,7 +152,7 @@ export default function ReferralsPage() {
       header: "Their Earnings",
       mobileLabel: "Earned",
       render: (user: ReferredUser) => (
-        <span className="text-sm font-mono text-text-secondary">${user.theirEarnings.toFixed(2)}</span>
+        <span className="text-sm font-mono text-text-secondary">${user.theirEarningsUsd.toFixed(2)}</span>
       ),
     },
     {
@@ -53,7 +160,7 @@ export default function ReferralsPage() {
       header: "Your Commission",
       mobileLabel: "Commission",
       render: (user: ReferredUser) => (
-        <span className="text-sm font-mono font-semibold text-accent-gold">${user.yourCommission.toFixed(2)}</span>
+        <span className="text-sm font-mono font-semibold text-accent-gold">${user.yourCommissionUsd.toFixed(2)}</span>
       ),
     },
   ];
@@ -86,10 +193,10 @@ export default function ReferralsPage() {
         </div>
         <div className="flex gap-3 flex-col sm:flex-row">
           <div className="flex-1 bg-bg-elevated border border-border rounded-lg px-4 py-2.5 font-mono text-sm text-text-primary overflow-hidden">
-            <span className="truncate block">{referralStats.referralLink}</span>
+            <span className="truncate block">{referralLink}</span>
           </div>
           <div className="flex gap-2 shrink-0">
-            <CopyButton text={referralStats.referralLink} />
+            <CopyButton text={referralLink} />
             <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border text-sm font-semibold text-text-secondary hover:text-text-primary hover:border-accent-gold/30 transition-all">
               <Share2 className="w-4 h-4" />
               Share
@@ -98,7 +205,7 @@ export default function ReferralsPage() {
         </div>
         <div className="mt-3 flex items-center gap-2">
           <span className="text-xs text-text-tertiary">Referral Code:</span>
-          <code className="text-xs font-mono text-accent-gold bg-accent-gold/10 px-2 py-0.5 rounded">{referralStats.referralCode}</code>
+          <code className="text-xs font-mono text-accent-gold bg-accent-gold/10 px-2 py-0.5 rounded">{referralCode}</code>
         </div>
       </div>
 
@@ -107,24 +214,24 @@ export default function ReferralsPage() {
         <StatCard
           icon={<Users className="w-5 h-5" />}
           label="Total Referrals"
-          value={referralStats.totalReferrals}
+          value={stats.totalReferrals}
         />
         <StatCard
           icon={<UserPlus className="w-5 h-5" />}
           label="Active This Month"
-          value={referralStats.activeThisMonth}
+          value={stats.activeThisMonth}
         />
         <StatCard
           icon={<DollarSign className="w-5 h-5" />}
           label="Total Earned"
-          value={`$${referralStats.totalEarned.toFixed(2)}`}
+          value={`$${stats.totalEarnedUsd.toFixed(2)}`}
           valueColor="text-accent-gold"
         />
         <StatCard
           icon={<TrendingUp className="w-5 h-5" />}
           label="Commission Rate"
-          value={`${referralStats.commissionRate}%`}
-          subtitle={`${referralStats.currentTier} Tier`}
+          value={`${currentTier.commissionPercent}%`}
+          subtitle={`${currentTier.name} Tier`}
           valueColor="text-success"
         />
       </div>
@@ -135,18 +242,18 @@ export default function ReferralsPage() {
         <p className="text-sm text-text-secondary mb-4">Earn more as you refer more active users</p>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {commissionTiers.map((tier) => {
-            const isCurrent = tier.name === referralStats.currentTier;
+          {allTiers.map((tier) => {
+            const color = tierColors[tier.name] ?? "#9CA3AF";
             return (
               <div
                 key={tier.name}
                 className={`relative bg-bg-surface rounded-xl border p-5 text-center transition-all ${
-                  isCurrent
+                  tier.isCurrent
                     ? "border-accent-gold/40 ring-1 ring-accent-gold/20"
                     : "border-border hover:border-accent-gold/20"
                 }`}
               >
-                {isCurrent && (
+                {tier.isCurrent && (
                   <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-accent-gold text-bg-deepest text-[10px] font-bold rounded-full">
                     CURRENT
                   </div>
@@ -154,13 +261,13 @@ export default function ReferralsPage() {
 
                 {/* Hex badge with tier icon */}
                 <div className="inline-flex items-center justify-center mb-3 mt-1">
-                  <HexBadge icon={Crown} color={tier.color} size="lg" glowing={isCurrent} />
+                  <HexBadge icon={Crown} color={color} size="lg" glowing={tier.isCurrent} />
                 </div>
 
-                <h3 className="font-heading font-bold text-text-primary text-sm mb-0.5" style={{ color: isCurrent ? tier.color : undefined }}>
+                <h3 className="font-heading font-bold text-text-primary text-sm mb-0.5" style={{ color: tier.isCurrent ? color : undefined }}>
                   {tier.name}
                 </h3>
-                <p className="font-mono font-bold text-2xl text-text-primary mb-1">{tier.rate}%</p>
+                <p className="font-mono font-bold text-2xl text-text-primary mb-1">{tier.commissionPercent}%</p>
                 <p className="text-[10px] text-text-tertiary">
                   {tier.requiredActive === 0
                     ? "Default tier"
@@ -172,34 +279,35 @@ export default function ReferralsPage() {
         </div>
 
         {/* Progress to next tier */}
-        {(() => {
-          const currentIdx = commissionTiers.findIndex((t) => t.name === referralStats.currentTier);
-          const nextTier = commissionTiers[currentIdx + 1];
-          if (!nextTier) return null;
-          return (
-            <div className="mt-4 bg-bg-surface rounded-xl border border-border p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-text-secondary">
-                  Progress to <span className="text-text-primary font-medium">{nextTier.name}</span> ({nextTier.rate}%)
-                </span>
-                <span className="text-xs font-mono text-text-tertiary">
-                  {referralStats.activeThisMonth} / {nextTier.requiredActive} active
-                </span>
-              </div>
-              <ProgressBar value={referralStats.activeThisMonth} max={nextTier.requiredActive} />
+        {nextTier && (
+          <div className="mt-4 bg-bg-surface rounded-xl border border-border p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-text-secondary">
+                Progress to <span className="text-text-primary font-medium">{nextTier.name}</span> ({nextTier.commissionPercent}%)
+              </span>
+              <span className="text-xs font-mono text-text-tertiary">
+                {nextTier.currentActive} / {nextTier.requiredActive} active
+              </span>
             </div>
-          );
-        })()}
+            <ProgressBar value={nextTier.currentActive} max={nextTier.requiredActive} />
+          </div>
+        )}
       </section>
 
       {/* Referred users table — using DataTable */}
       <section className="mb-8">
         <h2 className="font-heading text-lg font-bold text-text-primary mb-4">Your Referrals</h2>
-        <DataTable
-          columns={referralColumns}
-          rows={referredUsers}
-          rowKey={(user) => user.id}
-        />
+        {users.length === 0 ? (
+          <div className="bg-bg-surface rounded-xl border border-border p-8 text-center">
+            <p className="text-sm text-text-secondary">No referrals yet. Share your link to start earning!</p>
+          </div>
+        ) : (
+          <DataTable
+            columns={referralColumns}
+            rows={users}
+            rowKey={(user) => user.username}
+          />
+        )}
       </section>
 
       {/* How it works */}
@@ -220,7 +328,7 @@ export default function ReferralsPage() {
             {
               icon: <DollarSign className="w-6 h-6" />,
               title: "You Get Paid",
-              description: "Earn a percentage of their earnings for life — automatically",
+              description: "Earn a percentage of their earnings for life -- automatically",
             },
           ]}
         />

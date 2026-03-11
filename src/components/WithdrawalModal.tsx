@@ -6,7 +6,7 @@ import { HoneyIcon } from "./Icons";
 import { ProviderAvatar } from "./SharedComponents";
 
 interface WithdrawalOption {
-  id: number;
+  id: string;
   name: string;
   category: string;
   image: string;

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AppLayout from "@/components/AppLayout";
-import { races } from "@/data/mockData";
+import BeeLoader from "@/components/BeeLoader";
+import { useApi } from "@/hooks/useApi";
 import { CountdownTimer, DataTable, FilterPill, HexBadge, StepCards, StatCard } from "@/components/SharedComponents";
 import {
   Trophy,
@@ -15,9 +16,133 @@ import {
   Crown,
 } from "lucide-react";
 
+// ---- API response types ----
+
+interface RaceSummary {
+  id: string;
+  type: "DAILY" | "MONTHLY";
+  title: string;
+  prizePoolUsdCents: number;
+  prizeDistribution: unknown;
+  startsAt: string;
+  endsAt: string;
+  status: string;
+  participantCount: number;
+  userPosition: { points: number; rank: number } | null;
+}
+
+interface RacesResponse {
+  races: RaceSummary[];
+}
+
+interface LeaderboardEntry {
+  userId: string;
+  username: string;
+  points: number;
+  rank: number;
+  isUser: boolean;
+}
+
+interface RaceDetailResponse {
+  race: {
+    id: string;
+    type: string;
+    title: string;
+    prizePoolUsdCents: number;
+    prizes: Array<{ rank: number; amount: number }>;
+    startsAt: string;
+    endsAt: string;
+    status: string;
+    participantCount: number;
+  };
+  leaderboard: LeaderboardEntry[];
+  userPosition: { points: number; rank: number } | null;
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
+// ---- Fallback data ----
+
+const fallbackLeaderboard: LeaderboardEntry[] = [
+  { userId: "1", username: "HoneyKing", points: 42500, rank: 1, isUser: false },
+  { userId: "2", username: "BeeHunter", points: 38900, rank: 2, isUser: false },
+  { userId: "3", username: "TaskMaster", points: 35200, rank: 3, isUser: false },
+  { userId: "4", username: "You", points: 28700, rank: 4, isUser: true },
+  { userId: "5", username: "SurveyPro", points: 24100, rank: 5, isUser: false },
+  { userId: "6", username: "HiveMind", points: 19800, rank: 6, isUser: false },
+  { userId: "7", username: "GoldRush", points: 15500, rank: 7, isUser: false },
+  { userId: "8", username: "BuzzWorthy", points: 12300, rank: 8, isUser: false },
+  { userId: "9", username: "NectarPro", points: 9800, rank: 9, isUser: false },
+  { userId: "10", username: "WaxBuilder", points: 7200, rank: 10, isUser: false },
+];
+
+const fallbackPrizes: Array<{ rank: string; amount: number }> = [
+  { rank: "1st", amount: 15 },
+  { rank: "2nd", amount: 10 },
+  { rank: "3rd", amount: 7 },
+  { rank: "4th-10th", amount: 2.5 },
+];
+
 export default function RacesPage() {
   const [tab, setTab] = useState<"daily" | "monthly">("daily");
-  const race = races[tab];
+  const { data: racesData, loading: racesLoading } = useApi<RacesResponse>("/api/races");
+
+  // Find the active race matching the selected tab
+  const apiType = tab === "daily" ? "DAILY" : "MONTHLY";
+  const activeRace = racesData?.races?.find(
+    (r) => r.type === apiType && r.status === "ACTIVE"
+  ) || racesData?.races?.find((r) => r.type === apiType);
+
+  // Fetch race detail (leaderboard) when we have an active race
+  const [detail, setDetail] = useState<RaceDetailResponse | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  useEffect(() => {
+    if (!activeRace?.id) {
+      setDetail(null);
+      return;
+    }
+
+    let cancelled = false;
+    setDetailLoading(true);
+
+    fetch(`/api/races/${activeRace.id}`, { credentials: "include" })
+      .then((res) => res.json())
+      .then((data: RaceDetailResponse) => {
+        if (!cancelled) setDetail(data);
+      })
+      .catch(() => {
+        if (!cancelled) setDetail(null);
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [activeRace?.id]);
+
+  // Build display data from API or fallback
+  const title = activeRace?.title || (tab === "daily" ? "$50 Daily Race" : "$500 Monthly Race");
+  const totalPrize = activeRace
+    ? (activeRace.prizePoolUsdCents / 100)
+    : tab === "daily" ? 50 : 500;
+  const endsAt = activeRace?.endsAt || new Date(Date.now() + 86400000).toISOString();
+  const userPosition = activeRace?.userPosition?.rank ?? detail?.userPosition?.rank ?? 4;
+  const userPoints = activeRace?.userPosition?.points ?? detail?.userPosition?.points ?? 28700;
+  const participantCount = activeRace?.participantCount ?? detail?.race?.participantCount ?? 10;
+
+  // Leaderboard from detail endpoint
+  const leaderboard = detail?.leaderboard?.length
+    ? detail.leaderboard
+    : fallbackLeaderboard;
+
+  // Prizes from detail endpoint
+  const rawPrizes = detail?.race?.prizes;
+  const prizes: Array<{ rank: string; amount: number }> = rawPrizes?.length
+    ? rawPrizes.map((p) => ({
+        rank: p.rank === 1 ? "1st" : p.rank === 2 ? "2nd" : p.rank === 3 ? "3rd" : `${p.rank}th`,
+        amount: p.amount / 100,
+      }))
+    : fallbackPrizes;
 
   const podiumStyles: Record<number, string> = {
     1: "text-accent-gold bg-accent-gold/10 border-accent-gold/30",
@@ -36,8 +161,6 @@ export default function RacesPage() {
     2: <Medal className="w-4 h-4 text-[#A8B2BD]" />,
     3: <Medal className="w-4 h-4 text-[#CD7F32]" />,
   };
-
-  type LeaderboardEntry = (typeof race.leaderboard)[number];
 
   const leaderboardColumns = [
     {
@@ -61,11 +184,10 @@ export default function RacesPage() {
       header: "Player",
       mobileLabel: "Player",
       render: (entry: LeaderboardEntry) => {
-        const isUser = "isUser" in entry && entry.isUser;
         return (
-          <span className={`text-sm ${isUser ? "font-bold text-accent-gold" : "text-text-primary"}`}>
+          <span className={`text-sm ${entry.isUser ? "font-bold text-accent-gold" : "text-text-primary"}`}>
             {entry.username}
-            {isUser && <span className="text-[10px] ml-1.5 text-text-secondary">(You)</span>}
+            {entry.isUser && <span className="text-[10px] ml-1.5 text-text-secondary">(You)</span>}
           </span>
         );
       },
@@ -86,13 +208,36 @@ export default function RacesPage() {
       header: "Prize",
       align: "right" as const,
       mobileLabel: "Prize",
-      render: (entry: LeaderboardEntry) => (
-        <span className="text-sm font-mono font-semibold text-accent-gold">
-          ${entry.prize}
-        </span>
-      ),
+      render: (entry: LeaderboardEntry) => {
+        // Match prize to rank from prizes array
+        const prizeEntry = prizes.find((p) => {
+          const rankStr = p.rank.toLowerCase();
+          if (rankStr.includes("-")) {
+            const [start, end] = rankStr.replace(/[^0-9-]/g, "").split("-").map(Number);
+            return entry.rank >= start && entry.rank <= end;
+          }
+          const num = parseInt(rankStr.replace(/[^0-9]/g, ""), 10);
+          return num === entry.rank;
+        });
+        const prizeAmount = prizeEntry?.amount ?? 0;
+        return (
+          <span className="text-sm font-mono font-semibold text-accent-gold">
+            ${prizeAmount}
+          </span>
+        );
+      },
     },
   ];
+
+  if (racesLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-24">
+          <BeeLoader size="lg" label="Loading races..." />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -121,11 +266,11 @@ export default function RacesPage() {
                   <Trophy className="w-6 h-6 text-accent-gold" />
                 </div>
                 <div>
-                  <h2 className="font-heading text-xl font-bold text-text-primary">{race.title}</h2>
+                  <h2 className="font-heading text-xl font-bold text-text-primary">{title}</h2>
                   <p className="text-xs text-text-secondary">
-                    Your position: <span className="text-accent-gold font-semibold">#{race.userPosition}</span>
+                    Your position: <span className="text-accent-gold font-semibold">#{userPosition}</span>
                     {" | "}
-                    Points: <span className="font-mono font-semibold text-text-primary">{race.userPoints.toLocaleString()}</span>
+                    Points: <span className="font-mono font-semibold text-text-primary">{userPoints.toLocaleString()}</span>
                   </p>
                 </div>
               </div>
@@ -136,7 +281,7 @@ export default function RacesPage() {
                 <Timer className="w-3.5 h-3.5" />
                 Ends in
               </span>
-              <CountdownTimer targetDate={race.endsAt} />
+              <CountdownTimer targetDate={endsAt} />
             </div>
           </div>
         </div>
@@ -147,23 +292,23 @@ export default function RacesPage() {
         <StatCard
           icon={<DollarSign className="w-5 h-5" />}
           label="Total Prize Pool"
-          value={`$${race.totalPrize}`}
+          value={`$${totalPrize}`}
           valueColor="text-accent-gold"
         />
         <StatCard
           icon={<Target className="w-5 h-5" />}
           label="Your Position"
-          value={`#${race.userPosition}`}
+          value={`#${userPosition}`}
         />
         <StatCard
           icon={<Zap className="w-5 h-5" />}
           label="Your Points"
-          value={race.userPoints.toLocaleString()}
+          value={userPoints.toLocaleString()}
         />
         <StatCard
           icon={<TrendingUp className="w-5 h-5" />}
           label="Players"
-          value={race.leaderboard.length}
+          value={participantCount}
           subtitle="and counting"
         />
       </div>
@@ -172,7 +317,7 @@ export default function RacesPage() {
       <section className="mb-6">
         <h2 className="font-heading text-lg font-bold text-text-primary mb-3">Prize Breakdown</h2>
         <div className="flex flex-wrap gap-3">
-          {race.prizes.map((prize, i) => (
+          {prizes.map((prize, i) => (
             <div
               key={i}
               className={`bg-bg-surface rounded-xl border px-4 py-3 text-center min-w-[100px] ${
@@ -190,36 +335,49 @@ export default function RacesPage() {
       <section className="mb-8">
         <h2 className="font-heading text-lg font-bold text-text-primary mb-3">Leaderboard</h2>
 
-        {/* Top 3 podium */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          {race.leaderboard
-            .filter((entry) => entry.rank <= 3)
-            .map((entry) => (
-              <div
-                key={entry.rank}
-                className={`bg-bg-surface rounded-xl border p-4 text-center ${podiumStyles[entry.rank]}`}
-              >
-                <div className="inline-flex items-center justify-center mb-2">
-                  <HexBadge
-                    text={`#${entry.rank}`}
-                    color={podiumColors[entry.rank]}
-                    size="md"
-                  />
-                </div>
-                <p className="font-semibold text-sm text-text-primary mb-0.5">{entry.username}</p>
-                <p className="font-mono text-xs text-text-secondary mb-1">{entry.points.toLocaleString()} pts</p>
-                <p className="font-mono font-bold text-accent-gold">${entry.prize}</p>
-              </div>
-            ))}
-        </div>
+        {detailLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <BeeLoader size="md" label="Loading leaderboard..." />
+          </div>
+        ) : (
+          <>
+            {/* Top 3 podium */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {leaderboard
+                .filter((entry) => entry.rank <= 3)
+                .map((entry) => (
+                  <div
+                    key={entry.rank}
+                    className={`bg-bg-surface rounded-xl border p-4 text-center ${podiumStyles[entry.rank]}`}
+                  >
+                    <div className="inline-flex items-center justify-center mb-2">
+                      <HexBadge
+                        text={`#${entry.rank}`}
+                        color={podiumColors[entry.rank]}
+                        size="md"
+                      />
+                    </div>
+                    <p className="font-semibold text-sm text-text-primary mb-0.5">{entry.username}</p>
+                    <p className="font-mono text-xs text-text-secondary mb-1">{entry.points.toLocaleString()} pts</p>
+                    <p className="font-mono font-bold text-accent-gold">
+                      ${prizes.find((p) => {
+                        const num = parseInt(p.rank.replace(/[^0-9]/g, ""), 10);
+                        return num === entry.rank;
+                      })?.amount ?? 0}
+                    </p>
+                  </div>
+                ))}
+            </div>
 
-        {/* Full table — using DataTable */}
-        <DataTable
-          columns={leaderboardColumns}
-          rows={race.leaderboard}
-          rowKey={(entry) => entry.rank}
-          highlightRow={(entry) => "isUser" in entry && !!entry.isUser}
-        />
+            {/* Full table — using DataTable */}
+            <DataTable
+              columns={leaderboardColumns}
+              rows={leaderboard}
+              rowKey={(entry) => entry.rank}
+              highlightRow={(entry) => entry.isUser}
+            />
+          </>
+        )}
       </section>
 
       {/* How races work */}

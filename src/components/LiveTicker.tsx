@@ -1,13 +1,62 @@
 "use client";
 
 import React from "react";
-import { liveActivity } from "@/data/mockData";
+import { useApi } from "@/hooks/useApi";
 import { HoneyIcon } from "./Icons";
 import { CheckCircle, Trophy } from "lucide-react";
 
+interface TickerEvent {
+  type: string;
+  username: string;
+  amount: number;
+  offerName?: string;
+  provider?: string;
+  timestamp: string;
+}
+
+interface TickerResponse {
+  events: TickerEvent[];
+}
+
+function eventToDisplay(event: TickerEvent) {
+  const action =
+    event.type === "withdrawal"
+      ? "withdrew"
+      : event.type === "race_win"
+        ? "won race"
+        : "earned";
+
+  return {
+    user: event.username,
+    amount: event.amount,
+    action,
+  };
+}
+
+// Fallback static data for when the API hasn't loaded yet
+const fallbackItems = [
+  { user: "HoneyBee42", amount: 5000, action: "earned" },
+  { user: "BuzzKing", amount: 3200, action: "earned" },
+  { user: "NectarQueen", amount: 1500, action: "withdrew" },
+  { user: "PollenDust", amount: 8750, action: "earned" },
+  { user: "HiveWorker", amount: 2100, action: "earned" },
+  { user: "WaxBuilder", amount: 4300, action: "withdrew" },
+  { user: "FlowerScout", amount: 950, action: "earned" },
+  { user: "DroneX", amount: 6200, action: "earned" },
+  { user: "QueenCell", amount: 11000, action: "withdrew" },
+  { user: "BeeKeep3r", amount: 1750, action: "earned" },
+];
+
 export default function LiveTicker() {
+  const { data } = useApi<TickerResponse>("/api/ticker/recent");
+
+  const baseItems =
+    data && data.events.length > 0
+      ? data.events.map(eventToDisplay)
+      : fallbackItems;
+
   // Double items for seamless infinite scroll
-  const items = [...liveActivity, ...liveActivity];
+  const items = [...baseItems, ...baseItems];
 
   return (
     <div

@@ -10,6 +10,7 @@ import {
   Coins,
   Gift,
   Home,
+  LogOut,
   MessageSquareMore,
   Settings,
   Trophy,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import { BeeIcon } from "./Icons";
 import { ProgressBar } from "./SharedComponents";
+import { useAuth, getLevelProgress } from "@/contexts/AuthContext";
 
 const iconMap: Record<string, React.ElementType> = {
   Home,
@@ -148,29 +150,75 @@ export default function Sidebar({
         </nav>
 
         <div className="border-t border-border p-3">
-          <div className={`rounded-xl border border-border bg-bg-elevated/50 p-3 ${collapsed ? "flex justify-center" : ""}`}>
-            <div className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-gold/20 text-xs font-bold text-accent-gold shrink-0">
-                JD
-              </div>
-              {!collapsed ? (
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-text-primary">JohnDoe</p>
-                  <div className="mt-0.5 flex items-center gap-2 text-[11px]">
-                    <span className="font-semibold text-[#A8B2BD]">Silver</span>
-                    <span className="text-text-tertiary">•</span>
-                    <span className="text-text-secondary">Lv12</span>
-                  </div>
-                  <div className="mt-2 flex items-center gap-2">
-                    <ProgressBar value={72} max={100} size="xs" className="flex-1" />
-                    <span className="text-[10px] font-medium text-text-tertiary">72%</span>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </div>
+          <UserFooter collapsed={collapsed} />
         </div>
       </aside>
     </>
+  );
+}
+
+/** Sidebar footer showing current user info or nothing if not loaded. */
+function UserFooter({ collapsed }: { collapsed: boolean }) {
+  const { user, logout } = useAuth();
+
+  if (!user) return null;
+
+  const initials = user.username.slice(0, 2).toUpperCase();
+  const progress = getLevelProgress(user.xp, user.level);
+
+  // VIP tier badge colors
+  const tierColors: Record<string, string> = {
+    BRONZE: "text-[#CD7F32]",
+    SILVER: "text-[#A8B2BD]",
+    GOLD: "text-accent-gold",
+    PLATINUM: "text-[#B8C5D6]",
+    DIAMOND: "text-[#B9F2FF]",
+  };
+  const tierColor = tierColors[user.vipTier] || "text-text-secondary";
+
+  return (
+    <div className={`rounded-xl border border-border bg-bg-elevated/50 p-3 ${collapsed ? "flex flex-col items-center gap-2" : ""}`}>
+      <div className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
+        <Link
+          href="/profile"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-gold/20 text-xs font-bold text-accent-gold shrink-0"
+        >
+          {initials}
+        </Link>
+        {!collapsed ? (
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-text-primary">{user.username}</p>
+            <div className="mt-0.5 flex items-center gap-2 text-[11px]">
+              <span className={`font-semibold capitalize ${tierColor}`}>
+                {user.vipTier.charAt(0) + user.vipTier.slice(1).toLowerCase()}
+              </span>
+              <span className="text-text-tertiary">&bull;</span>
+              <span className="text-text-secondary">Lv{user.level}</span>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <ProgressBar value={progress.percent} max={100} size="xs" className="flex-1" />
+              <span className="text-[10px] font-medium text-text-tertiary">{progress.percent}%</span>
+            </div>
+          </div>
+        ) : null}
+      </div>
+      {!collapsed ? (
+        <button
+          onClick={logout}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-border px-2 py-1.5 text-xs text-text-tertiary transition-colors hover:border-danger/30 hover:text-danger"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Sign Out
+        </button>
+      ) : (
+        <button
+          onClick={logout}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:text-danger"
+          title="Sign Out"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
+      )}
+    </div>
   );
 }

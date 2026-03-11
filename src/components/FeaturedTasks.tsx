@@ -2,12 +2,41 @@
 
 import React from "react";
 import { ChevronLeft, ChevronRight, Zap } from "lucide-react";
-import { featuredTasks } from "@/data/mockData";
-import { HoneyIcon } from "./Icons";
+import { useApi } from "@/hooks/useApi";
 import { TaskRow } from "./SharedComponents";
+import BeeLoader from "./BeeLoader";
+
+interface FeaturedOffer {
+  id: string;
+  title: string;
+  requirement: string;
+  providerName: string;
+  providerLogoUrl: string | null;
+  posterImageUrl: string | null;
+  appIconUrl: string | null;
+  rewardHoney: number;
+  externalUrl: string;
+  category: string;
+  completions: number;
+}
+
+interface FeaturedResponse {
+  offers: FeaturedOffer[];
+  categories: string[];
+}
+
+// Fallback static data when API is unavailable
+const fallbackTasks = [
+  { id: "1", title: "State of Survival: Zombie War", requirement: "Reach Stronghold Level 10", provider: "TyrAds", image: "/apps/state-of-survival.svg", reward: 3060, difficulty: "Medium" as const, estimatedTime: "3-5 days" },
+  { id: "2", title: "Raid: Shadow Legends", requirement: "Reach Player Level 30", provider: "AdGem", image: "/apps/raid-shadow-legends.svg", reward: 5200, difficulty: "Hard" as const, estimatedTime: "7-10 days" },
+  { id: "3", title: "Coin Master", requirement: "Reach Village Level 8", provider: "Torox", image: "/apps/coin-master.svg", reward: 1850, difficulty: "Easy" as const, estimatedTime: "1-2 days" },
+  { id: "4", title: "Rise of Kingdoms", requirement: "Reach City Hall Level 15", provider: "Lootably", image: "/apps/rise-of-kingdoms.svg", reward: 7500, difficulty: "Hard" as const, estimatedTime: "10-14 days" },
+  { id: "5", title: "Merge Dragons", requirement: "Complete Challenge 6", provider: "RevU", image: "/apps/merge-dragons.svg", reward: 2100, difficulty: "Medium" as const, estimatedTime: "2-3 days" },
+];
 
 export default function FeaturedTasks() {
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const { data, loading } = useApi<FeaturedResponse>("/api/offers/featured");
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
@@ -18,6 +47,18 @@ export default function FeaturedTasks() {
       });
     }
   };
+
+  const tasks =
+    data && data.offers.length > 0
+      ? data.offers.map((o) => ({
+          id: o.id,
+          title: o.title,
+          requirement: o.requirement,
+          provider: o.providerName,
+          image: o.appIconUrl || "/apps/default.svg",
+          reward: o.rewardHoney,
+        }))
+      : fallbackTasks;
 
   return (
     <section className="mb-8">
@@ -48,26 +89,31 @@ export default function FeaturedTasks() {
         </div>
       </div>
 
-      {/* Carousel — uses TaskRow featured variant */}
-      <div
-        ref={scrollRef}
-        className="flex gap-4 overflow-x-auto hide-scrollbar snap-x snap-mandatory pb-2"
-      >
-        {featuredTasks.map((task) => (
-          <TaskRow
-            key={task.id}
-            variant="featured"
-            icon={task.image}
-            title={task.title}
-            description={task.requirement}
-            provider={task.provider}
-            reward={task.reward}
-            difficulty={task.difficulty}
-            estimatedTime={task.estimatedTime}
-            ctaLabel="Earn Now"
-          />
-        ))}
-      </div>
+      {/* Loading state */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <BeeLoader size="md" label="Loading offers..." />
+        </div>
+      ) : (
+        /* Carousel — uses TaskRow featured variant */
+        <div
+          ref={scrollRef}
+          className="flex gap-4 overflow-x-auto hide-scrollbar snap-x snap-mandatory pb-2"
+        >
+          {tasks.map((task) => (
+            <TaskRow
+              key={task.id}
+              variant="featured"
+              icon={task.image}
+              title={task.title}
+              description={task.requirement}
+              provider={task.provider}
+              reward={task.reward}
+              ctaLabel="Earn Now"
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

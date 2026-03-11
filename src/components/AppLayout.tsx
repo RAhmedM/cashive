@@ -5,7 +5,6 @@ import Sidebar from "./Sidebar";
 import TopNav from "./TopNav";
 import LiveTicker from "./LiveTicker";
 import { ChatPanel } from "./Part3Components";
-import { chatMessages } from "@/data/mockData";
 import { MessageSquare } from "lucide-react";
 
 const CHAT_STORAGE_KEY = "cashive-chat-open";
@@ -31,6 +30,40 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const sidebarWidth = sidebarCollapsed ? 76 : 240;
   const chatWidth = chatOpen ? 320 : 0;
+
+  // Static chat messages — no API endpoint for chat yet
+  const chatMessages = [
+    {
+      id: 1,
+      username: "BeeScout",
+      avatar: "/providers/bee-scout.svg",
+      tier: "Silver" as const,
+      level: 12,
+      text: "Anybody else getting strong payouts from Torox today?",
+      time: "just now",
+      isCurrentUser: false,
+    },
+    {
+      id: 2,
+      username: "HoneyKing",
+      avatar: "/providers/honey-king.svg",
+      tier: "Gold" as const,
+      level: 24,
+      text: "Yeah, BitLabs surveys have been solid too.",
+      time: "1m ago",
+      isCurrentUser: false,
+    },
+    {
+      id: 3,
+      username: "System",
+      tier: null,
+      level: null,
+      text: "User Buzz*** just won the Daily Race bonus.",
+      time: "2m ago",
+      system: true,
+      isCurrentUser: false,
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-bg-deepest honeycomb-bg relative">
