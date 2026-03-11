@@ -30,8 +30,8 @@ export type RaceLeaderboardQueryParams = {
 export const createRaceSchema = z.object({
   type: z.enum(["DAILY", "MONTHLY"]),
   title: z.string().min(1, "Title is required").max(100),
-  prizePool: z.number().positive("Prize pool must be positive"),
-  prizes: z
+  prizePoolUsdCents: z.number().int().positive("Prize pool must be positive"),
+  prizeDistribution: z
     .array(
       z.object({
         rank: z.number().int().positive(),
@@ -45,8 +45,8 @@ export const createRaceSchema = z.object({
 
 export const updateRaceSchema = z.object({
   title: z.string().min(1).max(100).optional(),
-  prizePool: z.number().positive().optional(),
-  prizes: z
+  prizePoolUsdCents: z.number().int().positive().optional(),
+  prizeDistribution: z
     .array(
       z.object({
         rank: z.number().int().positive(),
@@ -55,7 +55,7 @@ export const updateRaceSchema = z.object({
     )
     .min(1)
     .optional(),
-  isActive: z.boolean().optional(),
+  status: z.enum(["ACTIVE", "FINALIZING", "COMPLETED"]).optional(),
   startsAt: z.string().datetime().optional(),
   endsAt: z.string().datetime().optional(),
 });

@@ -14,8 +14,8 @@ export async function POST(request: Request) {
   const { token } = data;
 
   // Find the token
-  const verificationToken = await db.emailVerificationToken.findUnique({
-    where: { token },
+  const verificationToken = await db.emailToken.findUnique({
+    where: { token, type: "VERIFY_EMAIL" },
   });
 
   if (!verificationToken) {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
   if (verificationToken.expiresAt < new Date()) {
     // Clean up expired token
-    await db.emailVerificationToken.delete({ where: { id: verificationToken.id } });
+    await db.emailToken.delete({ where: { id: verificationToken.id } });
     return jsonError("Verification token has expired. Please request a new one.", 400);
   }
 
@@ -35,11 +35,11 @@ export async function POST(request: Request) {
   });
 
   // Delete the used token
-  await db.emailVerificationToken.delete({ where: { id: verificationToken.id } });
+  await db.emailToken.delete({ where: { id: verificationToken.id } });
 
   // Also clean up any other verification tokens for this user
-  await db.emailVerificationToken.deleteMany({
-    where: { userId: verificationToken.userId },
+  await db.emailToken.deleteMany({
+    where: { userId: verificationToken.userId, type: "VERIFY_EMAIL" },
   });
 
   return jsonOk({ message: "Email verified successfully" });

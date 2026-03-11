@@ -4,7 +4,6 @@
  * Send a password reset email. Always returns 200 to prevent email enumeration.
  */
 import { db } from "@/lib/db";
-import { generateToken } from "@/lib/auth";
 import { jsonOk, parseBody, rateLimit, RATE_LIMITS } from "@/lib/middleware";
 import { forgotPasswordSchema } from "@/lib/validations/auth";
 import { sendPasswordResetEmail } from "@/lib/email";
@@ -34,23 +33,22 @@ export async function POST(request: Request) {
   }
 
   // Invalidate any existing reset tokens for this user
-  await db.passwordResetToken.updateMany({
-    where: { userId: user.id, used: false },
+  await db.emailToken.updateMany({
+    where: { userId: user.id, type: "RESET_PASSWORD", used: false },
     data: { used: true },
   });
 
   // Create new reset token (expires in 1 hour)
-  const token = generateToken();
-  await db.passwordResetToken.create({
+  const resetToken = await db.emailToken.create({
     data: {
       userId: user.id,
-      token,
+      type: "RESET_PASSWORD",
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     },
   });
 
   // Send email (non-blocking)
-  void sendPasswordResetEmail(user.email, token);
+  void sendPasswordResetEmail(user.email, resetToken.token);
 
   return successResponse;
 }

@@ -40,11 +40,11 @@ export const GET = withAdmin(async (_request, _user, params) => {
       id: race.id,
       type: race.type,
       title: race.title,
-      prizePool: race.prizePool,
-      prizes: race.prizes,
+      prizePoolUsdCents: race.prizePoolUsdCents,
+      prizeDistribution: race.prizeDistribution,
       startsAt: race.startsAt,
       endsAt: race.endsAt,
-      isActive: race.isActive,
+      status: race.status,
       participantCount: race._count.entries,
       createdAt: race.createdAt,
       topEntries: race.entries.map((e, i) => ({
@@ -53,7 +53,7 @@ export const GET = withAdmin(async (_request, _user, params) => {
         username: userMap.get(e.userId)?.username ?? "Unknown",
         email: userMap.get(e.userId)?.email ?? "",
         points: e.points,
-        prize: e.prize,
+        prizeHoney: e.prizeHoney,
       })),
     },
   });
@@ -74,9 +74,9 @@ export const PATCH = withAdmin(async (request, user, params) => {
 
   const updateData: Record<string, unknown> = {};
   if (data.title !== undefined) updateData.title = data.title;
-  if (data.prizePool !== undefined) updateData.prizePool = data.prizePool;
-  if (data.prizes !== undefined) updateData.prizes = data.prizes;
-  if (data.isActive !== undefined) updateData.isActive = data.isActive;
+  if (data.prizePoolUsdCents !== undefined) updateData.prizePoolUsdCents = data.prizePoolUsdCents;
+  if (data.prizeDistribution !== undefined) updateData.prizeDistribution = data.prizeDistribution;
+  if (data.status !== undefined) updateData.status = data.status;
   if (data.startsAt !== undefined) updateData.startsAt = new Date(data.startsAt);
   if (data.endsAt !== undefined) updateData.endsAt = new Date(data.endsAt);
 
@@ -86,13 +86,13 @@ export const PATCH = withAdmin(async (request, user, params) => {
 
   const updated = await db.race.update({ where: { id }, data: updateData });
 
-  await db.adminAuditLog.create({
+  await db.auditLog.create({
     data: {
       adminId: user.id,
       action: "update_race",
       targetType: "race",
       targetId: id,
-      details: updateData as Record<string, unknown> as import("@/generated/prisma").Prisma.InputJsonValue,
+      afterState: updateData as Record<string, unknown> as import("@/generated/prisma").Prisma.InputJsonValue,
     },
   }).catch(() => {});
 
@@ -122,13 +122,13 @@ export const DELETE = withAdmin(async (_request, user, params) => {
 
   await db.race.delete({ where: { id } });
 
-  await db.adminAuditLog.create({
+  await db.auditLog.create({
     data: {
       adminId: user.id,
       action: "delete_race",
       targetType: "race",
       targetId: id,
-      details: { title: race.title },
+      afterState: { title: race.title },
     },
   }).catch(() => {});
 

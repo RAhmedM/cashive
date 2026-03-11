@@ -50,7 +50,6 @@ export const GET = withAdmin(async (request) => {
             email: true,
             fraudScore: true,
             isBanned: true,
-            kycStatus: true,
             lifetimeEarned: true,
           },
         },

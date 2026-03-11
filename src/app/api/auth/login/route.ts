@@ -30,50 +30,22 @@ export async function POST(request: Request) {
   const user = await db.user.findUnique({ where: { email } });
 
   if (!user || !user.passwordHash) {
-    // Log failed attempt
-    await db.loginAttempt.create({
-      data: {
-        userId: user?.id,
-        email,
-        ip,
-        success: false,
-        failReason: "invalid_credentials",
-      },
-    });
     return jsonError("Invalid email or password", 401);
   }
 
   // Check if banned
   if (user.isBanned) {
-    await db.loginAttempt.create({
-      data: {
-        userId: user.id,
-        email,
-        ip,
-        success: false,
-        failReason: "account_banned",
-      },
-    });
     return jsonError("This account has been suspended", 403);
   }
 
   // Verify password
   const passwordValid = await verifyPassword(password, user.passwordHash);
   if (!passwordValid) {
-    await db.loginAttempt.create({
-      data: {
-        userId: user.id,
-        email,
-        ip,
-        success: false,
-        failReason: "invalid_password",
-      },
-    });
     return jsonError("Invalid email or password", 401);
   }
 
   // Check 2FA
-  if (user.twoFactorEnabled && user.twoFactorSecret) {
+  if (user.totpEnabled && user.totpSecret) {
     if (!twoFactorCode) {
       // User needs to provide 2FA code
       return jsonOk({ requires2FA: true }, 200);
@@ -81,7 +53,7 @@ export async function POST(request: Request) {
 
     // Verify TOTP code
     try {
-      const decryptedSecret = decrypt2FASecret(user.twoFactorSecret);
+      const decryptedSecret = decrypt2FASecret(user.totpSecret);
       const totp = new OTPAuth.TOTP({
         secret: decryptedSecret,
         algorithm: "SHA1",
@@ -91,26 +63,12 @@ export async function POST(request: Request) {
 
       const delta = totp.validate({ token: twoFactorCode, window: 1 });
       if (delta === null) {
-        await db.loginAttempt.create({
-          data: {
-            userId: user.id,
-            email,
-            ip,
-            success: false,
-            failReason: "2fa_failed",
-          },
-        });
         return jsonError("Invalid 2FA code", 401);
       }
     } catch {
       return jsonError("2FA verification failed", 500);
     }
   }
-
-  // Log successful login
-  await db.loginAttempt.create({
-    data: { userId: user.id, email, ip, success: true },
-  });
 
   // Update last login
   await db.user.update({
@@ -128,7 +86,7 @@ export async function POST(request: Request) {
       email: user.email,
       username: user.username,
       emailVerified: user.emailVerified,
-      avatar: user.avatar,
+      avatarUrl: user.avatarUrl,
       balanceHoney: user.balanceHoney,
       lifetimeEarned: user.lifetimeEarned,
       level: user.level,

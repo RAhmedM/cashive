@@ -42,7 +42,7 @@ export async function GET(
   const redisKey = `race:${id}:leaderboard`;
   let useRedis = false;
 
-  if (race.isActive) {
+  if (race.status === "ACTIVE") {
     try {
       // Get leaderboard from Redis sorted set (ZREVRANGE with scores)
       const start = (page - 1) * limit;
@@ -64,14 +64,14 @@ export async function GET(
         const userIds = entries.map((e) => e.userId);
         const users = await db.user.findMany({
           where: { id: { in: userIds } },
-          select: { id: true, username: true, anonymousOnBoard: true },
+          select: { id: true, username: true, anonymousOnLeaderboard: true },
         });
         const userMap = new Map(users.map((u) => [u.id, u]));
 
         leaderboard = entries.map((entry, index) => {
           const u = userMap.get(entry.userId);
           const displayName = u
-            ? u.anonymousOnBoard
+            ? u.anonymousOnLeaderboard
               ? `${u.username.slice(0, 2)}***`
               : u.username
             : "Unknown";
@@ -107,14 +107,14 @@ export async function GET(
     const userIds = entries.map((e) => e.userId);
     const users = await db.user.findMany({
       where: { id: { in: userIds } },
-      select: { id: true, username: true, anonymousOnBoard: true },
+      select: { id: true, username: true, anonymousOnLeaderboard: true },
     });
     const userMap = new Map(users.map((u) => [u.id, u]));
 
     leaderboard = entries.map((entry, index) => {
       const u = userMap.get(entry.userId);
       const displayName = u
-        ? u.anonymousOnBoard
+        ? u.anonymousOnLeaderboard
           ? `${u.username.slice(0, 2)}***`
           : u.username
         : "Unknown";
@@ -123,7 +123,7 @@ export async function GET(
         userId: entry.userId,
         username: displayName,
         points: entry.points,
-        rank: entry.rank ?? skip + index + 1,
+        rank: entry.finalRank ?? skip + index + 1,
         isUser: sessionUser?.id === entry.userId,
       };
     });
@@ -149,18 +149,18 @@ export async function GET(
   }
 
   // Prize breakdown
-  const prizes = race.prizes as Array<{ rank: number; amount: number }>;
+  const prizes = race.prizeDistribution as Array<{ rank: number; amount: number }>;
 
   return jsonOk({
     race: {
       id: race.id,
       type: race.type,
       title: race.title,
-      prizePool: race.prizePool,
+      prizePoolUsdCents: race.prizePoolUsdCents,
       prizes,
       startsAt: race.startsAt,
       endsAt: race.endsAt,
-      isActive: race.isActive,
+      status: race.status,
       participantCount: race._count.entries,
     },
     leaderboard,

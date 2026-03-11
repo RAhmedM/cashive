@@ -102,19 +102,19 @@ async function main() {
 
   // ---- Offerwall Providers ----
   const providers = [
-    { slug: "torox", name: "Torox", bonusPercent: 0, isSurveyWall: false },
-    { slug: "adgem", name: "AdGem", bonusPercent: 50, isSurveyWall: false },
-    { slug: "lootably", name: "Lootably", bonusPercent: 0, isSurveyWall: false },
-    { slug: "revu", name: "RevU", bonusPercent: 80, isSurveyWall: false },
-    { slug: "adtowall", name: "AdToWall", bonusPercent: 0, isSurveyWall: false },
-    { slug: "adscend", name: "Adscend Media", bonusPercent: 0, isSurveyWall: true },
-    { slug: "ayetstudios", name: "Aye-T Studios", bonusPercent: 0, isSurveyWall: false },
-    { slug: "monlix", name: "Monlix", bonusPercent: 0, isSurveyWall: false },
-    { slug: "hangmyads", name: "HangMyAds", bonusPercent: 0, isSurveyWall: false },
-    { slug: "bitlabs", name: "BitLabs", bonusPercent: 0, isSurveyWall: true },
-    { slug: "cpxresearch", name: "CPX Research", bonusPercent: 0, isSurveyWall: true },
-    { slug: "theoremreach", name: "TheoremReach", bonusPercent: 0, isSurveyWall: true },
-    { slug: "primesurveys", name: "PrimeSurveys", bonusPercent: 0, isSurveyWall: true },
+    { slug: "torox", name: "Torox", bonusBadgePct: 0, type: "OFFERWALL" as const },
+    { slug: "adgem", name: "AdGem", bonusBadgePct: 50, type: "OFFERWALL" as const },
+    { slug: "lootably", name: "Lootably", bonusBadgePct: 0, type: "OFFERWALL" as const },
+    { slug: "revu", name: "RevU", bonusBadgePct: 80, type: "OFFERWALL" as const },
+    { slug: "adtowall", name: "AdToWall", bonusBadgePct: 0, type: "OFFERWALL" as const },
+    { slug: "adscend", name: "Adscend Media", bonusBadgePct: 0, type: "SURVEY_WALL" as const },
+    { slug: "ayetstudios", name: "Aye-T Studios", bonusBadgePct: 0, type: "OFFERWALL" as const },
+    { slug: "monlix", name: "Monlix", bonusBadgePct: 0, type: "OFFERWALL" as const },
+    { slug: "hangmyads", name: "HangMyAds", bonusBadgePct: 0, type: "OFFERWALL" as const },
+    { slug: "bitlabs", name: "BitLabs", bonusBadgePct: 0, type: "SURVEY_WALL" as const },
+    { slug: "cpxresearch", name: "CPX Research", bonusBadgePct: 0, type: "SURVEY_WALL" as const },
+    { slug: "theoremreach", name: "TheoremReach", bonusBadgePct: 0, type: "SURVEY_WALL" as const },
+    { slug: "primesurveys", name: "PrimeSurveys", bonusBadgePct: 0, type: "SURVEY_WALL" as const },
   ];
 
   for (const p of providers) {
@@ -126,9 +126,9 @@ async function main() {
         name: p.name,
         postbackSecret: `dev-secret-${p.slug}`,
         postbackIps: ["127.0.0.1"],
-        bonusPercent: p.bonusPercent,
-        isSurveyWall: p.isSurveyWall,
-        revenueSharePercent: 80,
+        type: p.type,
+        bonusBadgePct: p.bonusBadgePct,
+        revenueSharePct: 80,
       },
     });
   }
@@ -139,45 +139,40 @@ async function main() {
     {
       title: "Rise of Kingdoms",
       requirement: "Reach City Hall Level 15",
-      provider: "TyrAds",
+      providerName: "TyrAds",
       rewardHoney: 35000,
-      rewardUsd: 35.0,
       category: "Game",
       completions: 1247,
     },
     {
       title: "Coin Master",
       requirement: "Complete village 5",
-      provider: "AdGem",
+      providerName: "AdGem",
       rewardHoney: 8500,
-      rewardUsd: 8.5,
       category: "Game",
       completions: 3892,
     },
     {
       title: "Cash App",
       requirement: "Sign up & send $5",
-      provider: "Torox",
+      providerName: "Torox",
       rewardHoney: 12000,
-      rewardUsd: 12.0,
       category: "App",
       completions: 5621,
     },
     {
       title: "Raid Shadow Legends",
       requirement: "Reach player level 25",
-      provider: "Lootably",
+      providerName: "Lootably",
       rewardHoney: 22000,
-      rewardUsd: 22.0,
       category: "Game",
       completions: 892,
     },
     {
       title: "Temu",
       requirement: "Make first purchase ($10+)",
-      provider: "RevU",
+      providerName: "RevU",
       rewardHoney: 15000,
-      rewardUsd: 15.0,
       category: "Shopping",
       completions: 7234,
     },
@@ -233,15 +228,15 @@ async function main() {
 
   // Daily race
   const existingDailyRace = await prisma.race.findFirst({
-    where: { type: "DAILY", isActive: true },
+    where: { type: "DAILY", status: "ACTIVE" },
   });
   if (!existingDailyRace) {
     const dailyRace = await prisma.race.create({
       data: {
         type: "DAILY",
         title: "$50 Daily Race",
-        prizePool: 50,
-        prizes: [
+        prizePoolUsdCents: 5000,
+        prizeDistribution: [
           { rank: 1, amount: 10 },
           { rank: 2, amount: 7 },
           { rank: 3, amount: 5 },
@@ -256,7 +251,7 @@ async function main() {
         ],
         startsAt: todayStart,
         endsAt: todayEnd,
-        isActive: true,
+        status: "ACTIVE",
       },
     });
 
@@ -272,15 +267,15 @@ async function main() {
 
   // Monthly race
   const existingMonthlyRace = await prisma.race.findFirst({
-    where: { type: "MONTHLY", isActive: true },
+    where: { type: "MONTHLY", status: "ACTIVE" },
   });
   if (!existingMonthlyRace) {
     const monthlyRace = await prisma.race.create({
       data: {
         type: "MONTHLY",
         title: "$500 Monthly Race",
-        prizePool: 500,
-        prizes: [
+        prizePoolUsdCents: 50000,
+        prizeDistribution: [
           { rank: 1, amount: 100 },
           { rank: 2, amount: 75 },
           { rank: 3, amount: 50 },
@@ -289,7 +284,7 @@ async function main() {
         ],
         startsAt: monthStart,
         endsAt: monthEnd,
-        isActive: true,
+        status: "ACTIVE",
       },
     });
 
@@ -336,36 +331,34 @@ async function main() {
         amount: 500,
         balanceAfter: 500,
         description: "Welcome bonus",
-        sourceType: "signup",
+        sourceType: "SIGNUP" as const,
       },
       {
         userId: user1.id,
         type: "OFFER_EARNING" as const,
         amount: 8500,
         balanceAfter: 9000,
-        offerwallName: "Torox",
-        offerName: "Rise of Kingdoms",
         description: "Completed 'Rise of Kingdoms' on Torox",
-        sourceType: "offerwall",
+        sourceType: "OFFER" as const,
+        metadata: { offerwallName: "Torox", offerName: "Rise of Kingdoms" },
       },
       {
         userId: user1.id,
         type: "OFFER_EARNING" as const,
         amount: 3500,
         balanceAfter: 12500,
-        offerwallName: "AdGem",
-        offerName: "Coin Master",
         description: "Completed 'Coin Master' on AdGem",
-        sourceType: "offerwall",
+        sourceType: "OFFER" as const,
+        metadata: { offerwallName: "AdGem", offerName: "Coin Master" },
       },
       {
         userId: user1.id,
         type: "REFERRAL_COMMISSION" as const,
         amount: 250,
         balanceAfter: 12750,
-        referralFromId: user2.id,
         description: "Referral commission from bob",
-        sourceType: "referral",
+        sourceType: "REFERRAL" as const,
+        metadata: { referralFromId: user2.id },
       },
       {
         userId: user1.id,
@@ -373,17 +366,16 @@ async function main() {
         amount: 100,
         balanceAfter: 12850,
         description: "Day 3 streak bonus",
-        sourceType: "streak",
+        sourceType: "STREAK" as const,
       },
       {
         userId: user1.id,
         type: "SURVEY_EARNING" as const,
         amount: 2150,
         balanceAfter: 15000,
-        offerwallName: "BitLabs",
-        offerName: "Consumer Preferences Survey",
         description: "Completed survey on BitLabs",
-        sourceType: "offerwall",
+        sourceType: "OFFER" as const,
+        metadata: { offerwallName: "BitLabs", offerName: "Consumer Preferences Survey" },
       },
     ];
 

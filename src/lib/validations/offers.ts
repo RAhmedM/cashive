@@ -34,12 +34,11 @@ export const createProviderSchema = z.object({
         )
     )
     .default([]),
-  bonusPercent: z.number().int().min(0).max(999).default(0),
+  bonusBadgePct: z.number().int().min(0).max(999).default(0),
   isActive: z.boolean().default(true),
-  isSurveyWall: z.boolean().default(false),
-  isWatchWall: z.boolean().default(false),
-  iframeUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-  revenueSharePercent: z.number().int().min(1).max(100).default(80),
+  type: z.enum(["OFFERWALL", "SURVEY_WALL", "WATCH_WALL"]).default("OFFERWALL"),
+  iframeBaseUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  revenueSharePct: z.number().int().min(1).max(100).default(80),
 });
 
 export const updateProviderSchema = createProviderSchema.partial();
@@ -60,10 +59,10 @@ export const createFeaturedOfferSchema = z.object({
     .string()
     .min(1, "Requirement is required")
     .max(500, "Requirement must be at most 500 characters"),
-  provider: z
+  providerName: z
     .string()
-    .min(1, "Provider is required")
-    .max(100, "Provider must be at most 100 characters"),
+    .min(1, "Provider name is required")
+    .max(100, "Provider name must be at most 100 characters"),
   providerLogoUrl: z
     .string()
     .url("Must be a valid URL")
@@ -83,9 +82,6 @@ export const createFeaturedOfferSchema = z.object({
     .number()
     .int("Reward must be a whole number")
     .min(1, "Reward must be at least 1 Honey"),
-  rewardUsd: z
-    .number()
-    .min(0, "Reward USD must be non-negative"),
   externalUrl: z
     .string()
     .url("Must be a valid URL")

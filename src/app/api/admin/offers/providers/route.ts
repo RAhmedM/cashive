@@ -16,7 +16,7 @@ export const GET = withAdmin(async () => {
     orderBy: { createdAt: "asc" },
     include: {
       _count: {
-        select: { offers: true },
+        select: { offerCompletions: true },
       },
     },
   });
@@ -27,16 +27,15 @@ export const GET = withAdmin(async () => {
     slug: p.slug,
     name: p.name,
     logoUrl: p.logoUrl,
-    bonusPercent: p.bonusPercent,
+    bonusBadgePct: p.bonusBadgePct,
     isActive: p.isActive,
-    isSurveyWall: p.isSurveyWall,
-    isWatchWall: p.isWatchWall,
-    iframeUrl: p.iframeUrl,
-    revenueSharePercent: p.revenueSharePercent,
+    type: p.type,
+    iframeBaseUrl: p.iframeBaseUrl,
+    revenueSharePct: p.revenueSharePct,
     postbackIps: p.postbackIps,
     // Mask the secret — show first 4 and last 4 chars only
     postbackSecretMasked: maskSecret(p.postbackSecret),
-    totalCompletions: p._count.offers,
+    totalCompletions: p._count.offerCompletions,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
   }));
@@ -67,12 +66,11 @@ export const POST = withAdmin(async (request) => {
       logoUrl: data.logoUrl || null,
       postbackSecret: data.postbackSecret,
       postbackIps: data.postbackIps,
-      bonusPercent: data.bonusPercent,
+      bonusBadgePct: data.bonusBadgePct,
       isActive: data.isActive,
-      isSurveyWall: data.isSurveyWall,
-      isWatchWall: data.isWatchWall,
-      iframeUrl: data.iframeUrl || null,
-      revenueSharePercent: data.revenueSharePercent,
+      type: data.type,
+      iframeBaseUrl: data.iframeBaseUrl || null,
+      revenueSharePct: data.revenueSharePct,
     },
   });
 

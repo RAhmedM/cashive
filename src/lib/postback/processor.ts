@@ -97,7 +97,7 @@ export async function processPostback(
   // Convert to Honey: $1.00 = 1000 Honey, so 1 cent = 10 Honey
   const totalHoneyValue = data.payoutCentsUsd * 10;
   const rewardToUser = Math.floor(
-    totalHoneyValue * (provider.revenueSharePercent / 100)
+    totalHoneyValue * (provider.revenueSharePct / 100)
   );
   const ourMargin = totalHoneyValue - rewardToUser;
 
@@ -128,12 +128,12 @@ export async function processPostback(
         externalOfferId: data.offerId,
         externalTxId: data.transactionId,
         offerName: data.offerName,
-        payoutToUs: data.payoutCentsUsd,
-        rewardToUser,
-        ourMargin,
+        payoutToUsCents: data.payoutCentsUsd,
+        rewardToUserHoney: rewardToUser,
+        platformMarginHoney: ourMargin,
         status: user.isBanned ? "HELD" : "CREDITED",
         userIp: data.userIp,
-        postbackPayload: data.rawPayload,
+        rawPostback: data.rawPayload,
       },
     });
 
@@ -142,15 +142,15 @@ export async function processPostback(
       await tx.transaction.create({
         data: {
           userId: data.userId,
-          type: provider.isSurveyWall ? "SURVEY_EARNING" : "OFFER_EARNING",
+          type: provider.type === "SURVEY_WALL" ? "SURVEY_EARNING" : "OFFER_EARNING",
           amount: rewardToUser,
           balanceAfter: newBalance,
-          sourceType: "offerwall",
+          sourceType: "OFFER",
           sourceId: offerCompletion.id,
-          offerwallName: provider.name,
-          offerName: data.offerName,
           description: `Completed '${data.offerName}' on ${provider.name}`,
           metadata: {
+            offerwallName: provider.name,
+            offerName: data.offerName,
             externalTxId: data.transactionId,
             payoutCentsUsd: data.payoutCentsUsd,
           },
@@ -213,7 +213,7 @@ async function processReversal(
     };
   }
 
-  const deductAmount = original.rewardToUser;
+  const deductAmount = original.rewardToUserHoney;
   const newBalance = user.balanceHoney - deductAmount;
 
   await db.$transaction(async (tx) => {
@@ -239,27 +239,28 @@ async function processReversal(
         type: "CHARGEBACK",
         amount: -deductAmount,
         balanceAfter: newBalance,
-        sourceType: "offerwall",
+        sourceType: "OFFER",
         sourceId: original.id,
-        offerwallName: provider.name,
-        offerName: original.offerName,
         description: `Chargeback: '${original.offerName}' on ${provider.name}`,
         metadata: {
+          offerwallName: provider.name,
+          offerName: original.offerName,
           originalTxId: data.transactionId,
           reversalPayload: data.rawPayload,
         },
       },
     });
 
-    // If balance went negative, create a fraud signal
+    // If balance went negative, create a fraud event
     if (newBalance < 0) {
-      await tx.fraudSignal.create({
+      await tx.fraudEvent.create({
         data: {
           userId: data.userId,
-          signal: "chargeback_negative_balance",
-          score: 20,
-          description: `Chargeback made balance negative (${newBalance} Honey). Offer: '${original.offerName}' on ${provider.name}`,
-          metadata: {
+          eventType: "CHARGEBACK",
+          scoreImpact: 20,
+          scoreAfter: 0, // Will be recalculated by fraud scoring system
+          detail: `Chargeback made balance negative (${newBalance} Honey). Offer: '${original.offerName}' on ${provider.name}`,
+          evidence: {
             newBalance,
             deductAmount,
             externalTxId: data.transactionId,

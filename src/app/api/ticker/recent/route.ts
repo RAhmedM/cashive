@@ -43,11 +43,11 @@ export async function GET(request: Request) {
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {
-      rewardToUser: true,
+      rewardToUserHoney: true,
       offerName: true,
       createdAt: true,
       user: {
-        select: { username: true, anonymousOnBoard: true },
+        select: { username: true, anonymousOnLeaderboard: true },
       },
       provider: {
         select: { name: true },
@@ -57,10 +57,10 @@ export async function GET(request: Request) {
 
   const events: TickerEvent[] = completions.map((c) => ({
     type: "earning",
-    username: c.user.anonymousOnBoard
+    username: c.user.anonymousOnLeaderboard
       ? `${c.user.username.slice(0, 2)}***`
       : c.user.username,
-    amount: c.rewardToUser,
+    amount: c.rewardToUserHoney,
     offerName: c.offerName,
     provider: c.provider.name,
     timestamp: c.createdAt.getTime(),

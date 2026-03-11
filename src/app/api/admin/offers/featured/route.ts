@@ -35,12 +35,11 @@ export const POST = withAdmin(async (request) => {
     data: {
       title: data.title,
       requirement: data.requirement,
-      provider: data.provider,
+      providerName: data.providerName,
       providerLogoUrl: data.providerLogoUrl || null,
       posterImageUrl: data.posterImageUrl || null,
       appIconUrl: data.appIconUrl || null,
       rewardHoney: data.rewardHoney,
-      rewardUsd: data.rewardUsd,
       externalUrl: data.externalUrl || null,
       category: data.category,
       completions: data.completions,

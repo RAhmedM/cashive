@@ -16,7 +16,7 @@ const verify2FASetupSchema = z.object({
 });
 
 export const POST = withAuth(async (request, user) => {
-  if (user.twoFactorEnabled) {
+  if (user.totpEnabled) {
     return jsonError("Two-factor authentication is already enabled", 400);
   }
 
@@ -44,8 +44,8 @@ export const POST = withAuth(async (request, user) => {
   await db.user.update({
     where: { id: user.id },
     data: {
-      twoFactorSecret: encryptedSecret,
-      twoFactorEnabled: true,
+      totpSecret: encryptedSecret,
+      totpEnabled: true,
     },
   });
 

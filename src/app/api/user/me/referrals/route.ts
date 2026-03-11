@@ -82,22 +82,21 @@ export const GET = withAuth(async (request, user) => {
     return jsonOk({ referrals: null });
   }
 
-  // Get commission earned from each referred user
+  // Get commission earned from each referred user via ReferralEarning model
   const referredUserIds = referredUsers.map((u) => u.id);
 
   let commissionByUser: Map<string, number> = new Map();
   if (referredUserIds.length > 0) {
-    const commissions = await db.transaction.groupBy({
-      by: ["referralFromId"],
+    const commissions = await db.referralEarning.groupBy({
+      by: ["earnerId"],
       where: {
-        userId: user.id,
-        type: "REFERRAL_COMMISSION",
-        referralFromId: { in: referredUserIds },
+        referrerId: user.id,
+        earnerId: { in: referredUserIds },
       },
-      _sum: { amount: true },
+      _sum: { commissionHoney: true },
     });
     commissionByUser = new Map(
-      commissions.map((c) => [c.referralFromId!, c._sum.amount ?? 0])
+      commissions.map((c) => [c.earnerId, c._sum.commissionHoney ?? 0])
     );
   }
 

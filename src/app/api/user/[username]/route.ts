@@ -18,7 +18,7 @@ export async function GET(
     select: {
       id: true,
       username: true,
-      avatar: true,
+      avatarUrl: true,
       level: true,
       vipTier: true,
       profilePublic: true,
@@ -62,7 +62,7 @@ export async function GET(
     user: {
       id: user.id,
       username: user.username,
-      avatar: user.avatar,
+      avatar: user.avatarUrl,
       level: user.level,
       vipTier: user.vipTier,
       lifetimeEarned: user.lifetimeEarned,

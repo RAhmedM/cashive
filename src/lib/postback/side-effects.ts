@@ -136,7 +136,7 @@ async function updateStreak(userId: string): Promise<void> {
         type: "STREAK_BONUS",
         amount: streakBonus,
         balanceAfter: updated.balanceHoney,
-        sourceType: "streak",
+        sourceType: "STREAK",
         description: streakDescription,
         metadata: { streakDay: newStreak },
       },
@@ -198,12 +198,12 @@ async function processReferralCommission(
         type: "REFERRAL_COMMISSION",
         amount: commission,
         balanceAfter: newBalance,
-        sourceType: "referral",
-        referralFromId: userId,
-        offerwallName: providerName,
-        offerName,
+        sourceType: "REFERRAL",
         description: `Referral commission from ${user.username}'s activity on ${providerName}`,
         metadata: {
+          referralFromId: userId,
+          offerwallName: providerName,
+          offerName,
           referredUserId: userId,
           originalReward: rewardHoney,
           commissionRate: rate,
@@ -226,7 +226,7 @@ async function updateRacePoints(
   const now = new Date();
   const activeRaces = await db.race.findMany({
     where: {
-      isActive: true,
+      status: "ACTIVE",
       startsAt: { lte: now },
       endsAt: { gt: now },
     },
@@ -342,13 +342,13 @@ async function pushTickerEvent(
 ): Promise<void> {
   const user = await db.user.findUnique({
     where: { id: payload.userId },
-    select: { username: true, anonymousOnBoard: true },
+    select: { username: true, anonymousOnLeaderboard: true },
   });
   if (!user) return;
 
   const event = {
     type: "earning",
-    username: user.anonymousOnBoard
+    username: user.anonymousOnLeaderboard
       ? `${user.username.slice(0, 2)}***`
       : user.username,
     amount: payload.rewardHoney,

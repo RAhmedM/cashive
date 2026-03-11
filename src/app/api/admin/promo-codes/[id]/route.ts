@@ -83,13 +83,13 @@ export const PATCH = withAdmin(async (request, user, params) => {
 
   const updated = await db.promoCode.update({ where: { id }, data: updateData });
 
-  await db.adminAuditLog.create({
+  await db.auditLog.create({
     data: {
       adminId: user.id,
       action: "update_promo_code",
       targetType: "promo_code",
       targetId: id,
-      details: { code: existing.code, changes: updateData } as Record<string, unknown> as import("@/generated/prisma").Prisma.InputJsonValue,
+      afterState: { code: existing.code, changes: updateData } as Record<string, unknown> as import("@/generated/prisma").Prisma.InputJsonValue,
     },
   }).catch(() => {});
 
@@ -119,13 +119,13 @@ export const DELETE = withAdmin(async (_request, user, params) => {
 
   await db.promoCode.delete({ where: { id } });
 
-  await db.adminAuditLog.create({
+  await db.auditLog.create({
     data: {
       adminId: user.id,
       action: "delete_promo_code",
       targetType: "promo_code",
       targetId: id,
-      details: { code: promoCode.code },
+      afterState: { code: promoCode.code },
     },
   }).catch(() => {});
 

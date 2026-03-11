@@ -76,13 +76,13 @@ export const POST = withAdmin(async (request, user) => {
     },
   });
 
-  await db.adminAuditLog.create({
+  await db.auditLog.create({
     data: {
       adminId: user.id,
       action: "create_promo_code",
       targetType: "promo_code",
       targetId: promoCode.id,
-      details: {
+      afterState: {
         code: promoCode.code,
         rewardHoney: promoCode.rewardHoney,
         maxUses: promoCode.maxUses,

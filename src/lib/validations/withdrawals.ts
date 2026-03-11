@@ -6,12 +6,12 @@ import { z } from "zod";
 // All valid withdrawal methods (matching Prisma enum)
 const withdrawalMethods = [
   "PAYPAL",
-  "BITCOIN",
-  "ETHEREUM",
-  "LITECOIN",
-  "SOLANA",
-  "AMAZON_GIFT",
-  "STEAM_GIFT",
+  "BTC",
+  "ETH",
+  "LTC",
+  "SOL",
+  "AMAZON",
+  "STEAM",
   "ROBLOX",
   "VISA",
 ] as const;
@@ -56,7 +56,7 @@ export const createWithdrawalSchema = z
       });
     }
 
-    const cryptoMethods = ["BITCOIN", "ETHEREUM", "LITECOIN", "SOLANA"];
+    const cryptoMethods = ["BTC", "ETH", "LTC", "SOL"];
     if (cryptoMethods.includes(data.method) && !data.cryptoAddress) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -65,7 +65,7 @@ export const createWithdrawalSchema = z
       });
     }
 
-    const giftMethods = ["AMAZON_GIFT", "STEAM_GIFT", "ROBLOX"];
+    const giftMethods = ["AMAZON", "STEAM", "ROBLOX"];
     if (giftMethods.includes(data.method) && !data.giftCardEmail) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -102,10 +102,10 @@ export const reviewWithdrawalSchema = z.object({
 export type ReviewWithdrawalInput = z.infer<typeof reviewWithdrawalSchema>;
 
 export const processWithdrawalSchema = z.object({
-  externalTxId: z
+  externalPaymentId: z
     .string()
-    .min(1, "External transaction ID is required")
-    .max(256, "External transaction ID is too long")
+    .min(1, "External payment ID is required")
+    .max(256, "External payment ID is too long")
     .optional(),
 });
 

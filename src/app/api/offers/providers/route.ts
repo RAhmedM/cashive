@@ -16,10 +16,9 @@ export async function GET() {
       slug: true,
       name: true,
       logoUrl: true,
-      bonusPercent: true,
-      isSurveyWall: true,
-      isWatchWall: true,
-      iframeUrl: true,
+      type: true,
+      bonusBadgePct: true,
+      iframeBaseUrl: true,
     },
   });
 

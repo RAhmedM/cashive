@@ -21,11 +21,11 @@ export interface PayoutRequest {
   withdrawalId: string;
   /** Idempotency key for safe retries */
   idempotencyKey: string;
-  /** Payout amount in USD */
-  amountUsd: number;
-  /** Processing fee in USD */
-  feeUsd: number;
-  /** Net amount to send (amountUsd - feeUsd) */
+  /** Payout amount in USD cents */
+  amountUsdCents: number;
+  /** Processing fee in USD cents */
+  feeUsdCents: number;
+  /** Net amount to send in USD */
   netAmountUsd: number;
 }
 
@@ -272,9 +272,8 @@ export async function processPayout(
   method: string,
   withdrawal: {
     id: string;
-    idempotencyKey: string;
-    amountUsd: number;
-    fee: number;
+    amountUsdCents: number;
+    feeUsdCents: number;
     paypalEmail?: string | null;
     cryptoAddress?: string | null;
     cryptoCurrency?: string | null;
@@ -283,13 +282,14 @@ export async function processPayout(
   }
 ): Promise<PayoutResult> {
   const netAmountUsd =
-    Math.round((withdrawal.amountUsd - withdrawal.fee) * 100) / 100;
+    Math.round(withdrawal.amountUsdCents - withdrawal.feeUsdCents) / 100;
+  const idempotencyKey = `withdrawal_${withdrawal.id}`;
 
   const base: PayoutRequest = {
     withdrawalId: withdrawal.id,
-    idempotencyKey: withdrawal.idempotencyKey,
-    amountUsd: withdrawal.amountUsd,
-    feeUsd: withdrawal.fee,
+    idempotencyKey,
+    amountUsdCents: withdrawal.amountUsdCents,
+    feeUsdCents: withdrawal.feeUsdCents,
     netAmountUsd,
   };
 
@@ -304,10 +304,10 @@ export async function processPayout(
         recipientEmail: withdrawal.paypalEmail,
       });
 
-    case "BITCOIN":
-    case "ETHEREUM":
-    case "LITECOIN":
-    case "SOLANA":
+    case "BTC":
+    case "ETH":
+    case "LTC":
+    case "SOL":
       if (!withdrawal.cryptoAddress || !withdrawal.cryptoCurrency) {
         return {
           success: false,
@@ -321,8 +321,8 @@ export async function processPayout(
         currency: withdrawal.cryptoCurrency as "BTC" | "ETH" | "LTC" | "SOL",
       });
 
-    case "AMAZON_GIFT":
-    case "STEAM_GIFT":
+    case "AMAZON":
+    case "STEAM":
     case "ROBLOX":
       if (!withdrawal.giftCardEmail || !withdrawal.giftCardType) {
         return {

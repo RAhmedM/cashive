@@ -8,7 +8,6 @@ import { db } from "@/lib/db";
 import {
   hashPassword,
   createSession,
-  generateToken,
   getClientIp,
   getDeviceInfo,
 } from "@/lib/auth";
@@ -72,27 +71,16 @@ export async function POST(request: Request) {
   });
 
   // Create email verification token
-  const verificationToken = generateToken();
-  await db.emailVerificationToken.create({
+  const emailToken = await db.emailToken.create({
     data: {
       userId: user.id,
-      token: verificationToken,
+      type: "VERIFY_EMAIL",
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
     },
   });
 
   // Send verification email (non-blocking)
-  void sendVerificationEmail(email, verificationToken);
-
-  // Log the registration attempt
-  await db.loginAttempt.create({
-    data: {
-      userId: user.id,
-      email,
-      ip,
-      success: true,
-    },
-  });
+  void sendVerificationEmail(email, emailToken.token);
 
   // Create session
   const device = getDeviceInfo(request);

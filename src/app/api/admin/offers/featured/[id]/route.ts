@@ -44,7 +44,7 @@ export const PATCH = withAdmin(async (request, _user, params) => {
     data: {
       ...(data.title !== undefined && { title: data.title }),
       ...(data.requirement !== undefined && { requirement: data.requirement }),
-      ...(data.provider !== undefined && { provider: data.provider }),
+      ...(data.providerName !== undefined && { providerName: data.providerName }),
       ...(data.providerLogoUrl !== undefined && {
         providerLogoUrl: data.providerLogoUrl || null,
       }),
@@ -55,7 +55,6 @@ export const PATCH = withAdmin(async (request, _user, params) => {
         appIconUrl: data.appIconUrl || null,
       }),
       ...(data.rewardHoney !== undefined && { rewardHoney: data.rewardHoney }),
-      ...(data.rewardUsd !== undefined && { rewardUsd: data.rewardUsd }),
       ...(data.externalUrl !== undefined && {
         externalUrl: data.externalUrl || null,
       }),

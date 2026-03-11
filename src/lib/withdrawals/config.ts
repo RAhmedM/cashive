@@ -42,7 +42,7 @@ export const WITHDRAWAL_METHODS: Record<string, WithdrawalMethodConfig> = {
     category: "fiat",
     requiredFields: ["paypalEmail"],
   },
-  BITCOIN: {
+  BTC: {
     name: "Bitcoin",
     minHoney: 10000, // $10.00
     maxHoney: 1000000, // $1,000.00
@@ -53,7 +53,7 @@ export const WITHDRAWAL_METHODS: Record<string, WithdrawalMethodConfig> = {
     category: "crypto",
     requiredFields: ["cryptoAddress"],
   },
-  ETHEREUM: {
+  ETH: {
     name: "Ethereum",
     minHoney: 10000, // $10.00
     maxHoney: 1000000,
@@ -64,7 +64,7 @@ export const WITHDRAWAL_METHODS: Record<string, WithdrawalMethodConfig> = {
     category: "crypto",
     requiredFields: ["cryptoAddress"],
   },
-  LITECOIN: {
+  LTC: {
     name: "Litecoin",
     minHoney: 5000, // $5.00
     maxHoney: 500000,
@@ -75,7 +75,7 @@ export const WITHDRAWAL_METHODS: Record<string, WithdrawalMethodConfig> = {
     category: "crypto",
     requiredFields: ["cryptoAddress"],
   },
-  SOLANA: {
+  SOL: {
     name: "Solana",
     minHoney: 5000, // $5.00
     maxHoney: 500000,
@@ -86,7 +86,7 @@ export const WITHDRAWAL_METHODS: Record<string, WithdrawalMethodConfig> = {
     category: "crypto",
     requiredFields: ["cryptoAddress"],
   },
-  AMAZON_GIFT: {
+  AMAZON: {
     name: "Amazon Gift Card",
     minHoney: 5000, // $5.00
     maxHoney: 100000, // $100.00
@@ -97,7 +97,7 @@ export const WITHDRAWAL_METHODS: Record<string, WithdrawalMethodConfig> = {
     category: "gift_card",
     requiredFields: ["giftCardEmail"],
   },
-  STEAM_GIFT: {
+  STEAM: {
     name: "Steam Gift Card",
     minHoney: 5000, // $5.00
     maxHoney: 50000, // $50.00

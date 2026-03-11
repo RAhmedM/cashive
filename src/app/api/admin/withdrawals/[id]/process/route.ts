@@ -65,7 +65,7 @@ export const POST = withAdmin(async (_request, adminUser, params) => {
           type: "ADMIN_ADJUSTMENT",
           amount: withdrawal.amountHoney,
           balanceAfter: user.balanceHoney,
-          sourceType: "withdrawal",
+          sourceType: "WITHDRAWAL",
           sourceId: id,
           description: `Withdrawal processing failed — ${withdrawal.amountHoney} Honey refunded ($${honeyToUsd(withdrawal.amountHoney).toFixed(2)})`,
           metadata: {
@@ -77,17 +77,17 @@ export const POST = withAdmin(async (_request, adminUser, params) => {
     });
 
     // Audit log
-    void db.adminAuditLog
+    void db.auditLog
       .create({
         data: {
           adminId: adminUser.id,
           action: "process_withdrawal_failed",
           targetType: "withdrawal",
           targetId: id,
-          details: {
+          afterState: {
             error: result.error,
             method: withdrawal.method,
-            amountUsd: withdrawal.amountUsd,
+            amountUsdCents: withdrawal.amountUsdCents,
             refundedHoney: withdrawal.amountHoney,
           },
         },
@@ -101,7 +101,7 @@ export const POST = withAdmin(async (_request, adminUser, params) => {
           userId: withdrawal.userId,
           type: "withdrawal_failed",
           title: "Withdrawal Failed",
-          body: `Your $${withdrawal.amountUsd.toFixed(2)} withdrawal could not be processed. Your balance has been refunded.`,
+          body: `Your $${(withdrawal.amountUsdCents / 100).toFixed(2)} withdrawal could not be processed. Your balance has been refunded.`,
           link: "/cashout",
         },
       })
@@ -117,21 +117,21 @@ export const POST = withAdmin(async (_request, adminUser, params) => {
     await db.withdrawal.update({
       where: { id },
       data: {
-        externalTxId: result.externalTxId ?? null,
+        externalPaymentId: result.externalTxId ?? null,
       },
     });
 
     // Audit log
-    void db.adminAuditLog
+    void db.auditLog
       .create({
         data: {
           adminId: adminUser.id,
           action: "process_withdrawal_pending",
           targetType: "withdrawal",
           targetId: id,
-          details: {
+          afterState: {
             method: withdrawal.method,
-            amountUsd: withdrawal.amountUsd,
+            amountUsdCents: withdrawal.amountUsdCents,
             externalTxId: result.externalTxId,
           },
         },
@@ -151,21 +151,21 @@ export const POST = withAdmin(async (_request, adminUser, params) => {
     data: {
       status: "COMPLETED",
       processedAt: new Date(),
-      externalTxId: result.externalTxId ?? null,
+      externalPaymentId: result.externalTxId ?? null,
     },
   });
 
   // Audit log
-  void db.adminAuditLog
+  void db.auditLog
     .create({
       data: {
         adminId: adminUser.id,
         action: "process_withdrawal_completed",
         targetType: "withdrawal",
         targetId: id,
-        details: {
+        afterState: {
           method: withdrawal.method,
-          amountUsd: withdrawal.amountUsd,
+          amountUsdCents: withdrawal.amountUsdCents,
           externalTxId: result.externalTxId,
         },
       },
@@ -179,7 +179,7 @@ export const POST = withAdmin(async (_request, adminUser, params) => {
         userId: withdrawal.userId,
         type: "withdrawal_complete",
         title: "Withdrawal Completed!",
-        body: `Your $${withdrawal.amountUsd.toFixed(2)} withdrawal has been sent.`,
+        body: `Your $${(withdrawal.amountUsdCents / 100).toFixed(2)} withdrawal has been sent.`,
         link: "/cashout",
       },
     })

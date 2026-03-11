@@ -20,8 +20,8 @@ export const GET = withAdmin(async (request) => {
 
   const where: Record<string, unknown> = {};
   if (type) where.type = type;
-  if (active === "true") where.isActive = true;
-  if (active === "false") where.isActive = false;
+  if (active === "true") where.status = "ACTIVE";
+  if (active === "false") where.status = { not: "ACTIVE" };
 
   const [races, total] = await Promise.all([
     db.race.findMany({
@@ -41,11 +41,11 @@ export const GET = withAdmin(async (request) => {
       id: r.id,
       type: r.type,
       title: r.title,
-      prizePool: r.prizePool,
-      prizes: r.prizes,
+      prizePoolUsdCents: r.prizePoolUsdCents,
+      prizeDistribution: r.prizeDistribution,
       startsAt: r.startsAt,
       endsAt: r.endsAt,
-      isActive: r.isActive,
+      status: r.status,
       participantCount: r._count.entries,
       createdAt: r.createdAt,
     })),
@@ -71,21 +71,21 @@ export const POST = withAdmin(async (request, user) => {
     data: {
       type: data.type,
       title: data.title,
-      prizePool: data.prizePool,
-      prizes: data.prizes,
+      prizePoolUsdCents: data.prizePoolUsdCents,
+      prizeDistribution: data.prizeDistribution,
       startsAt,
       endsAt,
     },
   });
 
   // Audit log
-  await db.adminAuditLog.create({
+  await db.auditLog.create({
     data: {
       adminId: user.id,
       action: "create_race",
       targetType: "race",
       targetId: race.id,
-      details: { title: race.title, type: race.type, prizePool: race.prizePool },
+      afterState: { title: race.title, type: race.type, prizePoolUsdCents: race.prizePoolUsdCents },
     },
   }).catch(() => {});
 

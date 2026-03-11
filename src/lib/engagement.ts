@@ -330,19 +330,19 @@ export async function distributeRacePrizes(
   });
 
   if (!race) throw new Error(`Race ${raceId} not found`);
-  if (race.isActive && race.endsAt > new Date()) {
+  if (race.status === "ACTIVE" && race.endsAt > new Date()) {
     throw new Error("Race has not ended yet");
   }
 
-  const prizes = race.prizes as Array<{ rank: number; amount: number }>;
+  const prizes = race.prizeDistribution as Array<{ rank: number; amount: number }>;
   let winnersCount = 0;
   let totalDistributed = 0;
 
   await db.$transaction(async (tx) => {
-    // Mark race as inactive
+    // Mark race as completed
     await tx.race.update({
       where: { id: raceId },
-      data: { isActive: false },
+      data: { status: "COMPLETED" },
     });
 
     // Assign ranks and distribute prizes
@@ -357,8 +357,8 @@ export async function distributeRacePrizes(
       await tx.raceEntry.update({
         where: { id: entry.id },
         data: {
-          rank,
-          prize: prizeUsd > 0 ? prizeUsd : null,
+          finalRank: rank,
+          prizeHoney: prizeHoney > 0 ? prizeHoney : null,
         },
       });
 
@@ -379,7 +379,7 @@ export async function distributeRacePrizes(
             type: "RACE_PRIZE",
             amount: prizeHoney,
             balanceAfter: updated.balanceHoney,
-            sourceType: "race",
+            sourceType: "RACE",
             sourceId: raceId,
             description: `${race.title} — Rank #${rank} prize ($${prizeUsd.toFixed(2)})`,
             metadata: { raceId, rank, prizeUsd },

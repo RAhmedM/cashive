@@ -15,7 +15,12 @@ export const GET = withAuth(async (_request, user) => {
     where: { id: user.id },
     include: {
       surveyProfile: {
-        select: { completionPercent: true },
+        select: { completionPct: true },
+      },
+      kycVerifications: {
+        orderBy: { submittedAt: "desc" },
+        take: 1,
+        select: { status: true },
       },
       _count: {
         select: {
@@ -31,14 +36,23 @@ export const GET = withAuth(async (_request, user) => {
     return jsonError("User not found", 404);
   }
 
+  // Derive KYC status from the latest KYC verification record
+  const kycStatus = fullUser.kycVerifications[0]?.status ?? null;
+
+  // Extract notification prefs from JSON field
+  const notifPrefs = fullUser.notificationPrefs as {
+    email?: Record<string, boolean>;
+    push?: Record<string, boolean>;
+    onsite?: Record<string, boolean>;
+  } | null;
+
   return jsonOk({
     user: {
       id: fullUser.id,
       email: fullUser.email,
       emailVerified: fullUser.emailVerified,
       username: fullUser.username,
-      usernameChangedAt: fullUser.usernameChangedAt,
-      avatar: fullUser.avatar,
+      avatar: fullUser.avatarUrl,
       country: fullUser.country,
       language: fullUser.language,
       // Balance
@@ -56,27 +70,27 @@ export const GET = withAuth(async (_request, user) => {
       referralCode: fullUser.referralCode,
       referralTier: fullUser.referralTier,
       // KYC
-      kycStatus: fullUser.kycStatus,
+      kycStatus,
       // 2FA
-      twoFactorEnabled: fullUser.twoFactorEnabled,
+      twoFactorEnabled: fullUser.totpEnabled,
       // Privacy
       profilePublic: fullUser.profilePublic,
       anonymousInChat: fullUser.anonymousInChat,
-      anonymousOnBoard: fullUser.anonymousOnBoard,
+      anonymousOnLeaderboard: fullUser.anonymousOnLeaderboard,
       // Display
       balanceDisplay: fullUser.balanceDisplay,
       chatOpenDefault: fullUser.chatOpenDefault,
       // Notifications
-      notifEmail: fullUser.notifEmail,
-      notifPush: fullUser.notifPush,
-      notifOnsite: fullUser.notifOnsite,
+      notifEmail: notifPrefs?.email ?? {},
+      notifPush: notifPrefs?.push ?? {},
+      notifOnsite: notifPrefs?.onsite ?? {},
       // Stats
       stats: {
         referrals: fullUser._count.referrals,
         offersCompleted: fullUser._count.offerCompletions,
         achievements: fullUser._count.achievements,
         surveyProfileCompletion:
-          fullUser.surveyProfile?.completionPercent ?? 0,
+          fullUser.surveyProfile?.completionPct ?? 0,
       },
       // Meta
       createdAt: fullUser.createdAt,
@@ -95,19 +109,8 @@ export const PATCH = withAuth(async (request, user) => {
   // Build update payload (only include fields that were provided)
   const updateData: Record<string, unknown> = {};
 
-  // Username change (with cooldown: once per 30 days)
+  // Username change (no cooldown field exists; allow freely for now)
   if (data.username !== undefined && data.username !== user.username) {
-    // Check cooldown
-    if (user.usernameChangedAt) {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      if (user.usernameChangedAt > thirtyDaysAgo) {
-        return jsonError(
-          "You can only change your username once every 30 days",
-          400
-        );
-      }
-    }
-
     // Check uniqueness
     const existing = await db.user.findUnique({
       where: { username: data.username },
@@ -117,29 +120,32 @@ export const PATCH = withAuth(async (request, user) => {
     }
 
     updateData.username = data.username;
-    updateData.usernameChangedAt = new Date();
   }
 
   // Simple field updates
   if (data.language !== undefined) updateData.language = data.language;
   if (data.profilePublic !== undefined) updateData.profilePublic = data.profilePublic;
   if (data.anonymousInChat !== undefined) updateData.anonymousInChat = data.anonymousInChat;
-  if (data.anonymousOnBoard !== undefined) updateData.anonymousOnBoard = data.anonymousOnBoard;
+  if (data.anonymousOnLeaderboard !== undefined) updateData.anonymousOnLeaderboard = data.anonymousOnLeaderboard;
   if (data.balanceDisplay !== undefined) updateData.balanceDisplay = data.balanceDisplay;
   if (data.chatOpenDefault !== undefined) updateData.chatOpenDefault = data.chatOpenDefault;
 
-  // Notification preferences (merge with existing)
-  if (data.notifEmail !== undefined) {
-    const existing = (user.notifEmail as Record<string, boolean>) ?? {};
-    updateData.notifEmail = { ...existing, ...data.notifEmail };
-  }
-  if (data.notifPush !== undefined) {
-    const existing = (user.notifPush as Record<string, boolean>) ?? {};
-    updateData.notifPush = { ...existing, ...data.notifPush };
-  }
-  if (data.notifOnsite !== undefined) {
-    const existing = (user.notifOnsite as Record<string, boolean>) ?? {};
-    updateData.notifOnsite = { ...existing, ...data.notifOnsite };
+  // Notification preferences (merge with existing JSON field)
+  if (data.notificationPrefs !== undefined) {
+    const existing = (user.notificationPrefs ?? {}) as Record<string, Record<string, boolean>>;
+    const merged: Record<string, Record<string, boolean>> = { ...existing };
+
+    if (data.notificationPrefs.email) {
+      merged.email = { ...(existing.email ?? {}), ...data.notificationPrefs.email };
+    }
+    if (data.notificationPrefs.push) {
+      merged.push = { ...(existing.push ?? {}), ...data.notificationPrefs.push };
+    }
+    if (data.notificationPrefs.onsite) {
+      merged.onsite = { ...(existing.onsite ?? {}), ...data.notificationPrefs.onsite };
+    }
+
+    updateData.notificationPrefs = merged;
   }
 
   if (Object.keys(updateData).length === 0) {
@@ -151,6 +157,13 @@ export const PATCH = withAuth(async (request, user) => {
     data: updateData,
   });
 
+  // Extract notification prefs for response
+  const updatedNotifPrefs = updatedUser.notificationPrefs as {
+    email?: Record<string, boolean>;
+    push?: Record<string, boolean>;
+    onsite?: Record<string, boolean>;
+  } | null;
+
   return jsonOk({
     user: {
       id: updatedUser.id,
@@ -158,12 +171,12 @@ export const PATCH = withAuth(async (request, user) => {
       language: updatedUser.language,
       profilePublic: updatedUser.profilePublic,
       anonymousInChat: updatedUser.anonymousInChat,
-      anonymousOnBoard: updatedUser.anonymousOnBoard,
+      anonymousOnLeaderboard: updatedUser.anonymousOnLeaderboard,
       balanceDisplay: updatedUser.balanceDisplay,
       chatOpenDefault: updatedUser.chatOpenDefault,
-      notifEmail: updatedUser.notifEmail,
-      notifPush: updatedUser.notifPush,
-      notifOnsite: updatedUser.notifOnsite,
+      notifEmail: updatedNotifPrefs?.email ?? {},
+      notifPush: updatedNotifPrefs?.push ?? {},
+      notifOnsite: updatedNotifPrefs?.onsite ?? {},
     },
     message: "Profile updated successfully",
   });

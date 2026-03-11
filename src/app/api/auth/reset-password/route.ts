@@ -15,8 +15,8 @@ export async function POST(request: Request) {
   const { token, password } = data;
 
   // Find the reset token
-  const resetToken = await db.passwordResetToken.findUnique({
-    where: { token },
+  const resetToken = await db.emailToken.findUnique({
+    where: { token, type: "RESET_PASSWORD" },
   });
 
   if (!resetToken || resetToken.used) {
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       where: { id: resetToken.userId },
       data: { passwordHash },
     }),
-    db.passwordResetToken.update({
+    db.emailToken.update({
       where: { id: resetToken.id },
       data: { used: true },
     }),

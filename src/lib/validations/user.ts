@@ -17,32 +17,28 @@ export const updateProfileSchema = z.object({
   // Privacy
   profilePublic: z.boolean().optional(),
   anonymousInChat: z.boolean().optional(),
-  anonymousOnBoard: z.boolean().optional(),
+  anonymousOnLeaderboard: z.boolean().optional(),
   // Display
   balanceDisplay: z.enum(["HONEY", "USD", "BOTH"]).optional(),
   chatOpenDefault: z.boolean().optional(),
-  // Notifications
-  notifEmail: z
+  // Notifications (stored as single JSON field `notificationPrefs` in DB)
+  notificationPrefs: z
     .object({
-      earnings: z.boolean().optional(),
-      withdrawals: z.boolean().optional(),
-      promotions: z.boolean().optional(),
-      weekly_summary: z.boolean().optional(),
-    })
-    .optional(),
-  notifPush: z
-    .object({
-      earnings: z.boolean().optional(),
-      withdrawals: z.boolean().optional(),
-      streak_reminder: z.boolean().optional(),
-    })
-    .optional(),
-  notifOnsite: z
-    .object({
-      earnings: z.boolean().optional(),
-      withdrawals: z.boolean().optional(),
-      chat_mentions: z.boolean().optional(),
-      achievements: z.boolean().optional(),
+      email: z
+        .object({
+          marketing: z.boolean().optional(),
+          withdrawal: z.boolean().optional(),
+          offer_credited: z.boolean().optional(),
+          weekly_summary: z.boolean().optional(),
+        })
+        .optional(),
+      push: z.record(z.string(), z.boolean()).optional(),
+      onsite: z
+        .object({
+          race_results: z.boolean().optional(),
+          streak_reminder: z.boolean().optional(),
+        })
+        .optional(),
     })
     .optional(),
 });

@@ -14,7 +14,7 @@ export const POST = withAdmin(async (_request, user, params) => {
 
   const race = await db.race.findUnique({
     where: { id },
-    select: { id: true, title: true, endsAt: true, isActive: true },
+    select: { id: true, title: true, endsAt: true, status: true },
   });
 
   if (!race) return jsonError("Race not found", 404);
@@ -24,8 +24,8 @@ export const POST = withAdmin(async (_request, user, params) => {
     return jsonError("Race has not ended yet", 400);
   }
 
-  // Check if prizes were already distributed (race deactivated)
-  if (!race.isActive) {
+  // Check if prizes were already distributed (race completed)
+  if (race.status !== "ACTIVE") {
     return jsonError(
       "Prizes have already been distributed for this race",
       409
@@ -35,13 +35,13 @@ export const POST = withAdmin(async (_request, user, params) => {
   try {
     const result = await distributeRacePrizes(id);
 
-    await db.adminAuditLog.create({
+    await db.auditLog.create({
       data: {
         adminId: user.id,
         action: "distribute_race_prizes",
         targetType: "race",
         targetId: id,
-        details: {
+        afterState: {
           title: race.title,
           winnersCount: result.winnersCount,
           totalDistributedHoney: result.totalDistributed,

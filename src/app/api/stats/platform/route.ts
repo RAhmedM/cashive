@@ -47,13 +47,13 @@ export async function GET() {
     db.user.aggregate({ _sum: { lifetimeEarned: true } }),
     db.withdrawal.aggregate({
       where: { status: "COMPLETED" },
-      _sum: { amountUsd: true },
+      _sum: { amountUsdCents: true },
     }),
   ]);
 
   const stats: PlatformStats = {
     totalUsers,
-    totalPaidOutUsd: totalPaidOut._sum.amountUsd ?? 0,
+    totalPaidOutUsd: (totalPaidOut._sum?.amountUsdCents ?? 0) / 100,
     totalOffersCompleted,
     activeProviders,
     totalHoneyEarned: aggregates._sum.lifetimeEarned ?? 0,

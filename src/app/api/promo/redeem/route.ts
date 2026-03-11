@@ -49,7 +49,7 @@ export const POST = withAuth(async (request, user) => {
   }
 
   // Check if user already redeemed this code
-  const existingRedemption = await db.promoCodeRedemption.findUnique({
+  const existingRedemption = await db.promoRedemption.findUnique({
     where: {
       userId_promoCodeId: {
         userId: user.id,
@@ -71,7 +71,7 @@ export const POST = withAuth(async (request, user) => {
     });
 
     // Record redemption
-    await tx.promoCodeRedemption.create({
+    await tx.promoRedemption.create({
       data: {
         userId: user.id,
         promoCodeId: promoCode.id,
@@ -95,7 +95,7 @@ export const POST = withAuth(async (request, user) => {
         type: "PROMO_CODE",
         amount: promoCode.rewardHoney,
         balanceAfter: updatedUser.balanceHoney,
-        sourceType: "promo",
+        sourceType: "PROMO",
         sourceId: promoCode.id,
         description: `Promo code: ${promoCode.code}`,
         metadata: {

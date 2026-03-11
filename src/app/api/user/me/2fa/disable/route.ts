@@ -13,7 +13,7 @@ const disable2FASchema = z.object({
 });
 
 export const POST = withAuth(async (request, user) => {
-  if (!user.twoFactorEnabled) {
+  if (!user.totpEnabled) {
     return jsonError("Two-factor authentication is not enabled", 400);
   }
 
@@ -33,8 +33,8 @@ export const POST = withAuth(async (request, user) => {
   await db.user.update({
     where: { id: user.id },
     data: {
-      twoFactorSecret: null,
-      twoFactorEnabled: false,
+      totpSecret: null,
+      totpEnabled: false,
     },
   });
 

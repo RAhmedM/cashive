@@ -108,7 +108,7 @@ export async function POST(request: Request) {
       data: {
         status: "COMPLETED",
         processedAt: new Date(),
-        externalTxId: chargeCode,
+        externalPaymentId: chargeCode,
       },
     });
 
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
           userId: withdrawal.userId,
           type: "withdrawal_complete",
           title: "Withdrawal Completed!",
-          body: `Your $${withdrawal.amountUsd.toFixed(2)} crypto withdrawal has been confirmed.`,
+          body: `Your $${(withdrawal.amountUsdCents / 100).toFixed(2)} crypto withdrawal has been confirmed.`,
           link: "/cashout",
         },
       })
@@ -154,7 +154,7 @@ export async function POST(request: Request) {
           type: "ADMIN_ADJUSTMENT",
           amount: withdrawal.amountHoney,
           balanceAfter: user.balanceHoney,
-          sourceType: "withdrawal",
+            sourceType: "WITHDRAWAL",
           sourceId: withdrawalId,
           description: `Crypto payout failed — ${withdrawal.amountHoney} Honey refunded ($${honeyToUsd(withdrawal.amountHoney).toFixed(2)})`,
           metadata: { coinbaseEvent: eventType, chargeCode },
@@ -169,7 +169,7 @@ export async function POST(request: Request) {
           userId: withdrawal.userId,
           type: "withdrawal_failed",
           title: "Withdrawal Failed",
-          body: `Your $${withdrawal.amountUsd.toFixed(2)} crypto withdrawal could not be completed. Your balance has been refunded.`,
+          body: `Your $${(withdrawal.amountUsdCents / 100).toFixed(2)} crypto withdrawal could not be completed. Your balance has been refunded.`,
           link: "/cashout",
         },
       })

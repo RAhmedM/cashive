@@ -9,7 +9,7 @@ import QRCode from "qrcode";
 import { withAuth, jsonOk, jsonError } from "@/lib/middleware";
 
 export const POST = withAuth(async (_request, user) => {
-  if (user.twoFactorEnabled) {
+  if (user.totpEnabled) {
     return jsonError("Two-factor authentication is already enabled", 400);
   }
 

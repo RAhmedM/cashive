@@ -23,11 +23,11 @@ export async function GET(request: Request) {
     // Show races that ended in the last 7 days + active ones
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     where.OR = [
-      { isActive: true, startsAt: { lte: now } },
+      { status: "ACTIVE", startsAt: { lte: now } },
       { endsAt: { gte: sevenDaysAgo } },
     ];
   } else {
-    where.isActive = true;
+    where.status = "ACTIVE";
     where.startsAt = { lte: now };
     where.endsAt = { gt: now };
   }
@@ -75,11 +75,11 @@ export async function GET(request: Request) {
         id: race.id,
         type: race.type,
         title: race.title,
-        prizePool: race.prizePool,
-        prizes: race.prizes,
+        prizePoolUsdCents: race.prizePoolUsdCents,
+        prizeDistribution: race.prizeDistribution,
         startsAt: race.startsAt,
         endsAt: race.endsAt,
-        isActive: race.isActive,
+        status: race.status,
         participantCount: race._count.entries,
         userPosition: userEntry
           ? {

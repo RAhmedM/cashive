@@ -20,7 +20,7 @@ export const GET = withAdmin(async (_request, _user, params) => {
     where: { id },
     include: {
       _count: {
-        select: { offers: true },
+        select: { offerCompletions: true },
       },
     },
   });
@@ -70,17 +70,14 @@ export const PATCH = withAdmin(async (request, _user, params) => {
         postbackSecret: data.postbackSecret,
       }),
       ...(data.postbackIps !== undefined && { postbackIps: data.postbackIps }),
-      ...(data.bonusPercent !== undefined && {
-        bonusPercent: data.bonusPercent,
+      ...(data.bonusBadgePct !== undefined && {
+        bonusBadgePct: data.bonusBadgePct,
       }),
       ...(data.isActive !== undefined && { isActive: data.isActive }),
-      ...(data.isSurveyWall !== undefined && {
-        isSurveyWall: data.isSurveyWall,
-      }),
-      ...(data.isWatchWall !== undefined && { isWatchWall: data.isWatchWall }),
-      ...(data.iframeUrl !== undefined && { iframeUrl: data.iframeUrl || null }),
-      ...(data.revenueSharePercent !== undefined && {
-        revenueSharePercent: data.revenueSharePercent,
+      ...(data.type !== undefined && { type: data.type }),
+      ...(data.iframeBaseUrl !== undefined && { iframeBaseUrl: data.iframeBaseUrl || null }),
+      ...(data.revenueSharePct !== undefined && {
+        revenueSharePct: data.revenueSharePct,
       }),
     },
   });
@@ -106,7 +103,7 @@ export const DELETE = withAdmin(async (_request, _user, params) => {
   const provider = await db.offerwallProvider.findUnique({
     where: { id },
     include: {
-      _count: { select: { offers: true } },
+      _count: { select: { offerCompletions: true } },
     },
   });
 
@@ -115,9 +112,9 @@ export const DELETE = withAdmin(async (_request, _user, params) => {
   }
 
   // Prevent deletion if there are linked completions
-  if (provider._count.offers > 0) {
+  if (provider._count.offerCompletions > 0) {
     return jsonError(
-      `Cannot delete provider '${provider.name}' — it has ${provider._count.offers} offer completion(s). ` +
+      `Cannot delete provider '${provider.name}' — it has ${provider._count.offerCompletions} offer completion(s). ` +
         `Deactivate it instead.`,
       409
     );

@@ -57,12 +57,12 @@ export const GET = withAuth(async (request, user) => {
         id: true,
         method: true,
         amountHoney: true,
-        amountUsd: true,
-        fee: true,
+        amountUsdCents: true,
+        feeUsdCents: true,
         status: true,
         reviewNote: true,
         processedAt: true,
-        externalTxId: true,
+        externalPaymentId: true,
         createdAt: true,
         updatedAt: true,
         // Include masked destination (for display, not full address)
@@ -182,20 +182,22 @@ export const POST = withAuth(async (request, user) => {
   // 7. Calculate amounts
   const amountUsd = honeyToUsd(data.amountHoney);
   const feeUsd = calculateFeeUsd(data.method, data.amountHoney);
+  const amountUsdCents = Math.round(amountUsd * 100);
+  const feeUsdCents = Math.round(feeUsd * 100);
   const newBalance = user.balanceHoney - data.amountHoney;
 
   // Map crypto methods to their currency codes
   const cryptoCurrencyMap: Record<string, string> = {
-    BITCOIN: "BTC",
-    ETHEREUM: "ETH",
-    LITECOIN: "LTC",
-    SOLANA: "SOL",
+    BTC: "BTC",
+    ETH: "ETH",
+    LTC: "LTC",
+    SOL: "SOL",
   };
 
   // Map gift card methods to their type
   const giftCardTypeMap: Record<string, string> = {
-    AMAZON_GIFT: "Amazon",
-    STEAM_GIFT: "Steam",
+    AMAZON: "Amazon",
+    STEAM: "Steam",
     ROBLOX: "Roblox",
   };
 
@@ -213,8 +215,8 @@ export const POST = withAuth(async (request, user) => {
         userId: user.id,
         method: data.method,
         amountHoney: data.amountHoney,
-        amountUsd,
-        fee: feeUsd,
+        amountUsdCents,
+        feeUsdCents,
         paypalEmail: data.paypalEmail ?? null,
         cryptoAddress: data.cryptoAddress ?? null,
         cryptoCurrency: cryptoCurrencyMap[data.method] ?? null,
@@ -231,13 +233,12 @@ export const POST = withAuth(async (request, user) => {
         type: "WITHDRAWAL",
         amount: -data.amountHoney,
         balanceAfter: newBalance,
-        sourceType: "withdrawal",
+        sourceType: "WITHDRAWAL",
         sourceId: w.id,
         description: `Withdrawal: $${amountUsd.toFixed(2)} via ${methodConfig.name}`,
         metadata: {
           method: data.method,
           feeUsd,
-          idempotencyKey: w.idempotencyKey,
         },
       },
     });
@@ -264,8 +265,8 @@ export const POST = withAuth(async (request, user) => {
         id: withdrawal.id,
         method: withdrawal.method,
         amountHoney: withdrawal.amountHoney,
-        amountUsd: withdrawal.amountUsd,
-        fee: withdrawal.fee,
+        amountUsdCents: withdrawal.amountUsdCents,
+        feeUsdCents: withdrawal.feeUsdCents,
         status: withdrawal.status,
         createdAt: withdrawal.createdAt,
       },
