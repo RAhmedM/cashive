@@ -2,9 +2,12 @@
  * Postback side effects.
  *
  * These run AFTER the core postback credit succeeds. They are non-critical —
- * if any of them fail, the user still gets their credit. In production,
- * these would be queued as a BullMQ job. For Phase 2, they run inline
- * but are wrapped in try/catch so failures don't affect the postback response.
+ * if any of them fail, the user still gets their credit. Eventually these
+ * should be queued as BullMQ jobs. Currently they run inline but are wrapped
+ * in try/catch so failures don't affect the postback response.
+ *
+ * Real-time events are published to Redis Pub/Sub channels, which the
+ * Socket.IO server (src/socket/server.ts) subscribes to and broadcasts.
  */
 import { db } from "@/lib/db";
 import { redis } from "@/lib/redis";
@@ -363,13 +366,13 @@ async function pushTickerEvent(
   await redis.lpush("ticker:events", eventJson).catch(() => {});
   await redis.ltrim("ticker:events", 0, 49).catch(() => {});
 
-  // Publish for real-time WebSocket broadcast (Phase 5 consumer)
+  // Publish for real-time WebSocket broadcast (Socket.IO server subscribes)
   await redis.publish("ticker:new", eventJson).catch(() => {});
 }
 
 /**
  * Push a balance update notification via Redis pub/sub.
- * The WebSocket server (Phase 5) subscribes to this channel.
+ * The Socket.IO server subscribes and delivers to the specific user's client.
  */
 async function pushBalanceNotification(
   payload: PostbackSideEffectPayload
@@ -392,8 +395,8 @@ async function pushBalanceNotification(
     .publish(`user:${payload.userId}:balance`, JSON.stringify(event))
     .catch(() => {});
 
-  // Also create an on-site notification
-  await db.notification
+  // Also create an on-site notification and push via Socket.IO
+  const notification = await db.notification
     .create({
       data: {
         userId: payload.userId,
@@ -403,5 +406,24 @@ async function pushBalanceNotification(
         link: "/profile",
       },
     })
-    .catch(() => {});
+    .catch(() => null);
+
+  // Publish notification for real-time delivery via Socket.IO
+  if (notification) {
+    const notifEvent = {
+      id: notification.id,
+      type: notification.type,
+      title: notification.title,
+      body: notification.body,
+      link: notification.link,
+      createdAt: notification.createdAt.toISOString(),
+    };
+
+    await redis
+      .publish(
+        `user:${payload.userId}:notification`,
+        JSON.stringify(notifEvent)
+      )
+      .catch(() => {});
+  }
 }

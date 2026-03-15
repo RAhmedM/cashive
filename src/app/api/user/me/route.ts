@@ -77,6 +77,9 @@ export const GET = withAuth(async (_request, user) => {
       profilePublic: fullUser.profilePublic,
       anonymousInChat: fullUser.anonymousInChat,
       anonymousOnLeaderboard: fullUser.anonymousOnLeaderboard,
+      // Chat mute status
+      chatMuted: fullUser.chatMuted,
+      chatMutedUntil: fullUser.chatMutedUntil,
       // Display
       balanceDisplay: fullUser.balanceDisplay,
       chatOpenDefault: fullUser.chatOpenDefault,

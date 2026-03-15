@@ -1,30 +1,37 @@
 "use client";
 
-import React from "react";
+/**
+ * LiveTicker — Scrolling marquee of recent platform activity.
+ *
+ * Loads initial events from /api/ticker/recent, then receives
+ * new events in real-time via Socket.IO. New events are prepended
+ * to the list, keeping the display fresh.
+ */
+import React, { useCallback, useState } from "react";
 import { useApi } from "@/hooks/useApi";
+import { useSocketEvent } from "@/contexts/SocketContext";
 import { HoneyIcon } from "./Icons";
 import { CheckCircle, Trophy } from "lucide-react";
+import { SERVER_EVENTS } from "@/lib/socket-events";
+import type { TickerEventPayload } from "@/lib/socket-events";
 
-interface TickerEvent {
-  type: string;
-  username: string;
+interface TickerDisplayItem {
+  user: string;
   amount: number;
-  offerName?: string;
-  provider?: string;
-  timestamp: string;
+  action: "earned" | "withdrew" | "won race";
 }
 
 interface TickerResponse {
-  events: TickerEvent[];
+  events: TickerEventPayload[];
 }
 
-function eventToDisplay(event: TickerEvent) {
+function eventToDisplay(event: TickerEventPayload): TickerDisplayItem {
   const action =
     event.type === "withdrawal"
-      ? "withdrew"
+      ? ("withdrew" as const)
       : event.type === "race_win"
-        ? "won race"
-        : "earned";
+        ? ("won race" as const)
+        : ("earned" as const);
 
   return {
     user: event.username,
@@ -34,7 +41,7 @@ function eventToDisplay(event: TickerEvent) {
 }
 
 // Fallback static data for when the API hasn't loaded yet
-const fallbackItems = [
+const fallbackItems: TickerDisplayItem[] = [
   { user: "HoneyBee42", amount: 5000, action: "earned" },
   { user: "BuzzKing", amount: 3200, action: "earned" },
   { user: "NectarQueen", amount: 1500, action: "withdrew" },
@@ -47,12 +54,28 @@ const fallbackItems = [
   { user: "BeeKeep3r", amount: 1750, action: "earned" },
 ];
 
+const MAX_TICKER_ITEMS = 30;
+
 export default function LiveTicker() {
   const { data } = useApi<TickerResponse>("/api/ticker/recent");
+  const [liveItems, setLiveItems] = useState<TickerDisplayItem[]>([]);
+
+  // Receive real-time ticker events via Socket.IO
+  useSocketEvent(
+    SERVER_EVENTS.TICKER_EVENT,
+    useCallback((payload: TickerEventPayload) => {
+      const item = eventToDisplay(payload);
+      setLiveItems((prev) => [item, ...prev].slice(0, MAX_TICKER_ITEMS));
+    }, [])
+  );
+
+  // Merge: live items first, then API-loaded items, then fallback
+  const apiItems =
+    data && data.events.length > 0 ? data.events.map(eventToDisplay) : [];
 
   const baseItems =
-    data && data.events.length > 0
-      ? data.events.map(eventToDisplay)
+    liveItems.length > 0 || apiItems.length > 0
+      ? [...liveItems, ...apiItems].slice(0, MAX_TICKER_ITEMS)
       : fallbackItems;
 
   // Double items for seamless infinite scroll

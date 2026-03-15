@@ -4,8 +4,10 @@
  * DELETE - Soft-delete a chat message (sets isDeleted = true, records deletedBy)
  */
 import { db } from "@/lib/db";
+import { redis } from "@/lib/redis";
 import { withAdmin, jsonOk, jsonError } from "@/lib/middleware";
 import { createAuditLog } from "@/lib/admin-auth";
+import { REDIS_CHANNELS } from "@/lib/socket-events";
 
 export const DELETE = withAdmin(async (request, admin, params) => {
   const id = params?.id;
@@ -32,6 +34,14 @@ export const DELETE = withAdmin(async (request, admin, params) => {
     beforeState: { content: message.content, userId: message.userId, room: message.room },
     afterState: { isDeleted: true, deletedBy: admin.id },
   }).catch(() => {});
+
+  // Publish deletion to Socket.IO for real-time removal from all clients
+  await redis
+    .publish(
+      REDIS_CHANNELS.CHAT_MESSAGE_DELETED,
+      JSON.stringify({ messageId: id, room: message.room })
+    )
+    .catch(() => {});
 
   return jsonOk({ success: true });
 }, "MODERATOR");

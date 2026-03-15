@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -16,6 +16,10 @@ import {
 } from "lucide-react";
 import { BeeIcon, HoneyIcon } from "./Icons";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSocketEvent } from "@/contexts/SocketContext";
+import { useApi } from "@/hooks/useApi";
+import { SERVER_EVENTS } from "@/lib/socket-events";
+import type { BalanceUpdatePayload, NotificationPayload } from "@/lib/socket-events";
 
 interface TopNavProps {
   onMenuToggle: () => void;
@@ -24,8 +28,44 @@ interface TopNavProps {
 
 export default function TopNav({ onMenuToggle, sidebarWidth }: TopNavProps) {
   const [searchFocused, setSearchFocused] = useState(false);
+  const [balanceFlash, setBalanceFlash] = useState(false);
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, updateBalance } = useAuth();
+
+  // Fetch unread notification count
+  const { data: notifData, refetch: refetchNotifs } = useApi<{ unreadCount: number }>(
+    user ? "/api/user/me/notifications/count" : null
+  );
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (notifData) setUnreadCount(notifData.unreadCount);
+  }, [notifData]);
+
+  // Real-time balance updates via Socket.IO
+  useSocketEvent(
+    SERVER_EVENTS.BALANCE_UPDATE,
+    useCallback(
+      (payload: BalanceUpdatePayload) => {
+        updateBalance(payload.balanceHoney);
+        // Flash the balance display
+        setBalanceFlash(true);
+        setTimeout(() => setBalanceFlash(false), 1500);
+      },
+      [updateBalance]
+    )
+  );
+
+  // Real-time notification count updates via Socket.IO
+  useSocketEvent(
+    SERVER_EVENTS.NOTIFICATION,
+    useCallback(
+      (_payload: NotificationPayload) => {
+        setUnreadCount((prev) => prev + 1);
+      },
+      []
+    )
+  );
 
   const initials = user ? user.username.slice(0, 2).toUpperCase() : "?";
   const balanceFormatted = user
@@ -84,15 +124,32 @@ export default function TopNav({ onMenuToggle, sidebarWidth }: TopNavProps) {
             </div>
           )}
 
-          <div className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-bg-elevated px-3 py-1.5 transition-colors hover:border-accent-gold/30">
+          {/* Balance display with flash animation on update */}
+          <div
+            className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 transition-all ${
+              balanceFlash
+                ? "border-accent-gold/60 bg-accent-gold/15 scale-105"
+                : "border-border bg-bg-elevated hover:border-accent-gold/30"
+            }`}
+          >
             <HoneyIcon className="w-5 h-5" />
-            <span className="font-mono text-sm font-semibold text-accent-gold">{balanceFormatted}</span>
+            <span className="font-mono text-sm font-semibold text-accent-gold">
+              {balanceFormatted}
+            </span>
           </div>
 
-          <button className="relative rounded-lg p-2 text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary">
+          {/* Notification bell with real unread count */}
+          <Link
+            href="/profile"
+            className="relative rounded-lg p-2 text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary"
+          >
             <Bell className="w-5 h-5" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-danger" />
-          </button>
+            {unreadCount > 0 && (
+              <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </Link>
 
           <Link href="/profile" className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-gold/20 text-xs font-bold text-accent-gold transition-colors hover:bg-accent-gold/30">
             {initials}

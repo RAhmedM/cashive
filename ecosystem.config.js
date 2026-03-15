@@ -24,6 +24,29 @@ module.exports = {
       max_memory_restart: "512M",
     },
     {
+      name: "cashive-socket",
+      script: "node_modules/.bin/tsx",
+      args: "src/socket/server.ts",
+      cwd: "/root/cashive",
+      instances: 1,
+      exec_mode: "fork",
+      env: {
+        NODE_ENV: "production",
+        SOCKET_PORT: 3001,
+      },
+      // Restart policy
+      max_restarts: 10,
+      min_uptime: "10s",
+      restart_delay: 5000,
+      // Logging
+      error_file: "/root/cashive/logs/socket-error.log",
+      out_file: "/root/cashive/logs/socket-out.log",
+      merge_logs: true,
+      log_date_format: "YYYY-MM-DD HH:mm:ss Z",
+      // Memory limit
+      max_memory_restart: "256M",
+    },
+    {
       name: "cashive-studio",
       script: "node_modules/.bin/prisma",
       args: "studio --browser none --port 5555",

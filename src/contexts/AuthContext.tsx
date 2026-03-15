@@ -47,6 +47,8 @@ export interface AuthUser {
   profilePublic: boolean;
   anonymousInChat: boolean;
   anonymousOnLeaderboard: boolean;
+  chatMuted: boolean;
+  chatMutedUntil: string | null;
   balanceDisplay: string;
   chatOpenDefault: boolean;
   notifEmail: Record<string, boolean>;
@@ -78,6 +80,8 @@ interface AuthContextValue {
   }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  /** Update the user's balance in-memory (from Socket.IO event) */
+  updateBalance: (balanceHoney: number) => void;
 }
 
 // ---- XP Progress Helper ----
@@ -165,6 +169,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [refreshUser]
   );
 
+  const updateBalance = useCallback((balanceHoney: number) => {
+    setUser((prev) => (prev ? { ...prev, balanceHoney } : null));
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await api.post("/api/auth/logout");
@@ -176,8 +184,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, login, register, logout, refreshUser }),
-    [user, loading, login, register, logout, refreshUser]
+    () => ({ user, loading, login, register, logout, refreshUser, updateBalance }),
+    [user, loading, login, register, logout, refreshUser, updateBalance]
   );
 
   return (
