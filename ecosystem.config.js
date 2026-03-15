@@ -47,21 +47,26 @@ module.exports = {
       max_memory_restart: "256M",
     },
     {
-      name: "cashive-studio",
-      script: "node_modules/.bin/prisma",
-      args: "studio --browser none --port 5555",
+      name: "cashive-worker",
+      script: "node_modules/.bin/tsx",
+      args: "src/worker/index.ts",
       cwd: "/root/cashive",
       instances: 1,
       exec_mode: "fork",
+      env: {
+        NODE_ENV: "production",
+      },
       // Restart policy
-      max_restarts: 5,
-      min_uptime: "5s",
-      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: "10s",
+      restart_delay: 5000,
       // Logging
-      error_file: "/root/cashive/logs/studio-error.log",
-      out_file: "/root/cashive/logs/studio-out.log",
+      error_file: "/root/cashive/logs/worker-error.log",
+      out_file: "/root/cashive/logs/worker-out.log",
       merge_logs: true,
       log_date_format: "YYYY-MM-DD HH:mm:ss Z",
+      // Memory limit
+      max_memory_restart: "256M",
     },
   ],
 };

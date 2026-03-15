@@ -33,7 +33,9 @@ export interface PostbackResult {
   success: boolean;
   /** Was this a duplicate (already processed)? Still returns success. */
   duplicate: boolean;
-  /** Honey credited to the user (0 if duplicate or reversal) */
+  /** Were earnings held for review (new account / high fraud score)? */
+  held?: boolean;
+  /** Honey credited to the user (0 if duplicate, reversal, or held) */
   rewardHoney: number;
   /** Our margin in Honey */
   marginHoney: number;

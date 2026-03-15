@@ -12,7 +12,16 @@ import type { NextRequest } from "next/server";
  * happens server-side in the API routes via `withAuth` / `withAdmin`.
  */
 
-const PUBLIC_PATHS = new Set(["/login", "/register"]);
+const PUBLIC_PATHS = new Set([
+  "/login",
+  "/register",
+  "/verify-email",
+  "/forgot-password",
+  "/reset-password",
+  "/terms",
+  "/privacy",
+  "/cookies",
+]);
 
 const PUBLIC_PREFIXES = [
   "/api/",

@@ -11,6 +11,25 @@ import {
   X,
   GripVertical,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  DragOverlay,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 // ---- Types ----
 
@@ -47,6 +66,192 @@ const emptyForm = {
   sortOrder: 0,
 };
 
+// ---- Sortable Row Component ----
+
+function SortableOfferRow({
+  offer,
+  onToggleActive,
+  onEdit,
+  onDelete,
+}: {
+  offer: FeaturedOffer;
+  onToggleActive: (o: FeaturedOffer) => void;
+  onEdit: (o: FeaturedOffer) => void;
+  onDelete: (id: string, title: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: offer.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : undefined,
+  };
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={style}
+      className={`transition-colors hover:bg-[#0F1117]/50 ${
+        !offer.isActive ? "opacity-50" : ""
+      }`}
+    >
+      <td className="px-4 py-2.5 text-[#4A4D57]">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab touch-none rounded p-0.5 hover:bg-[#2A2D37] active:cursor-grabbing"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+      </td>
+      <td className="px-4 py-2.5">
+        <div className="flex items-center gap-2.5">
+          {offer.appIconUrl ? (
+            <img
+              src={offer.appIconUrl}
+              alt=""
+              className="h-8 w-8 rounded-lg object-cover"
+            />
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0F1117]">
+              <Star className="h-4 w-4 text-[#6B6D77]" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="truncate font-medium text-white max-w-[200px]">
+              {offer.title}
+            </div>
+            <div className="truncate text-[11px] text-[#4A4D57] max-w-[200px]">
+              {offer.requirement}
+            </div>
+          </div>
+        </div>
+      </td>
+      <td className="whitespace-nowrap px-4 py-2.5 text-[#8B8D97]">
+        {offer.providerName}
+      </td>
+      <td className="whitespace-nowrap px-4 py-2.5">
+        <span className="rounded bg-[#0F1117] px-1.5 py-0.5 text-[11px] text-[#8B8D97]">
+          {offer.category}
+        </span>
+      </td>
+      <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-green-400">
+        {offer.rewardHoney.toLocaleString()}
+      </td>
+      <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-[#8B8D97]">
+        {offer.completions.toLocaleString()}
+      </td>
+      <td className="whitespace-nowrap px-4 py-2.5">
+        <button
+          onClick={() => onToggleActive(offer)}
+          className={`flex items-center gap-1 text-xs ${
+            offer.isActive ? "text-green-400" : "text-[#4A4D57]"
+          }`}
+        >
+          {offer.isActive ? (
+            <ToggleRight className="h-4 w-4" />
+          ) : (
+            <ToggleLeft className="h-4 w-4" />
+          )}
+          {offer.isActive ? "Active" : "Off"}
+        </button>
+      </td>
+      <td className="whitespace-nowrap px-4 py-2.5 text-right">
+        <div className="flex items-center justify-end gap-1">
+          <button
+            onClick={() => onEdit(offer)}
+            className="rounded-md p-1.5 text-[#6B6D77] hover:bg-[#0F1117] hover:text-white"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => onDelete(offer.id, offer.title)}
+            className="rounded-md p-1.5 text-[#6B6D77] hover:bg-red-500/10 hover:text-red-400"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// ---- Drag Overlay Row ----
+
+function DragOverlayRow({ offer }: { offer: FeaturedOffer }) {
+  return (
+    <table className="w-full text-left text-sm">
+      <tbody>
+        <tr className="rounded-lg border border-[#F5A623]/30 bg-[#1A1D27]/90 shadow-lg shadow-black/40 backdrop-blur">
+          <td className="px-4 py-2.5 text-[#F5A623]">
+            <GripVertical className="h-3.5 w-3.5" />
+          </td>
+          <td className="px-4 py-2.5">
+            <div className="flex items-center gap-2.5">
+              {offer.appIconUrl ? (
+                <img
+                  src={offer.appIconUrl}
+                  alt=""
+                  className="h-8 w-8 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0F1117]">
+                  <Star className="h-4 w-4 text-[#6B6D77]" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="truncate font-medium text-white max-w-[200px]">
+                  {offer.title}
+                </div>
+                <div className="truncate text-[11px] text-[#4A4D57] max-w-[200px]">
+                  {offer.requirement}
+                </div>
+              </div>
+            </div>
+          </td>
+          <td className="whitespace-nowrap px-4 py-2.5 text-[#8B8D97]">
+            {offer.providerName}
+          </td>
+          <td className="whitespace-nowrap px-4 py-2.5">
+            <span className="rounded bg-[#0F1117] px-1.5 py-0.5 text-[11px] text-[#8B8D97]">
+              {offer.category}
+            </span>
+          </td>
+          <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-green-400">
+            {offer.rewardHoney.toLocaleString()}
+          </td>
+          <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-[#8B8D97]">
+            {offer.completions.toLocaleString()}
+          </td>
+          <td className="whitespace-nowrap px-4 py-2.5">
+            <span
+              className={`flex items-center gap-1 text-xs ${
+                offer.isActive ? "text-green-400" : "text-[#4A4D57]"
+              }`}
+            >
+              {offer.isActive ? (
+                <ToggleRight className="h-4 w-4" />
+              ) : (
+                <ToggleLeft className="h-4 w-4" />
+              )}
+              {offer.isActive ? "Active" : "Off"}
+            </span>
+          </td>
+          <td className="whitespace-nowrap px-4 py-2.5" />
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
 // ---- Component ----
 
 export default function AdminFeaturedOffersPage() {
@@ -59,6 +264,17 @@ export default function AdminFeaturedOffersPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const fetchOffers = useCallback(async () => {
     setLoading(true);
@@ -184,6 +400,49 @@ export default function AdminFeaturedOffersPage() {
     }
   }
 
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as string);
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    setActiveId(null);
+
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = offers.findIndex((o) => o.id === active.id);
+    const newIndex = offers.findIndex((o) => o.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(offers, oldIndex, newIndex);
+    setOffers(reordered);
+
+    // Persist the new order
+    try {
+      const res = await fetch("/api/admin/offers/featured/reorder", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderedIds: reordered.map((o) => o.id),
+        }),
+      });
+      if (!res.ok) {
+        // Revert on failure
+        setError("Failed to save new order");
+        await fetchOffers();
+      }
+    } catch {
+      setError("Failed to save new order");
+      await fetchOffers();
+    }
+  }
+
+  const activeOffer = activeId
+    ? offers.find((o) => o.id === activeId) ?? null
+    : null;
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -220,110 +479,54 @@ export default function AdminFeaturedOffersPage() {
       {/* Offers Table */}
       <div className="overflow-hidden rounded-xl border border-[#2A2D37] bg-[#1A1D27]">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-[#2A2D37] text-[11px] font-medium uppercase tracking-wider text-[#6B6D77]">
-                <th className="px-4 py-3 w-8">#</th>
-                <th className="px-4 py-3">Offer</th>
-                <th className="px-4 py-3">Provider</th>
-                <th className="px-4 py-3">Category</th>
-                <th className="px-4 py-3 text-right">Reward</th>
-                <th className="px-4 py-3 text-right">Completions</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#2A2D37]">
-              {offers.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-sm text-[#4A4D57]">
-                    No featured offers
-                  </td>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-[#2A2D37] text-[11px] font-medium uppercase tracking-wider text-[#6B6D77]">
+                  <th className="px-4 py-3 w-8">#</th>
+                  <th className="px-4 py-3">Offer</th>
+                  <th className="px-4 py-3">Provider</th>
+                  <th className="px-4 py-3">Category</th>
+                  <th className="px-4 py-3 text-right">Reward</th>
+                  <th className="px-4 py-3 text-right">Completions</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
-              ) : (
-                offers.map((o) => (
-                  <tr
-                    key={o.id}
-                    className={`transition-colors hover:bg-[#0F1117]/50 ${
-                      !o.isActive ? "opacity-50" : ""
-                    }`}
-                  >
-                    <td className="px-4 py-2.5 text-[#4A4D57]">
-                      <GripVertical className="h-3.5 w-3.5" />
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-2.5">
-                        {o.appIconUrl ? (
-                          <img
-                            src={o.appIconUrl}
-                            alt=""
-                            className="h-8 w-8 rounded-lg object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0F1117]">
-                            <Star className="h-4 w-4 text-[#6B6D77]" />
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <div className="truncate font-medium text-white max-w-[200px]">
-                            {o.title}
-                          </div>
-                          <div className="truncate text-[11px] text-[#4A4D57] max-w-[200px]">
-                            {o.requirement}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-[#8B8D97]">
-                      {o.providerName}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2.5">
-                      <span className="rounded bg-[#0F1117] px-1.5 py-0.5 text-[11px] text-[#8B8D97]">
-                        {o.category}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-green-400">
-                      {o.rewardHoney.toLocaleString()}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-[#8B8D97]">
-                      {o.completions.toLocaleString()}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2.5">
-                      <button
-                        onClick={() => toggleActive(o)}
-                        className={`flex items-center gap-1 text-xs ${
-                          o.isActive ? "text-green-400" : "text-[#4A4D57]"
-                        }`}
-                      >
-                        {o.isActive ? (
-                          <ToggleRight className="h-4 w-4" />
-                        ) : (
-                          <ToggleLeft className="h-4 w-4" />
-                        )}
-                        {o.isActive ? "Active" : "Off"}
-                      </button>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => openEdit(o)}
-                          className="rounded-md p-1.5 text-[#6B6D77] hover:bg-[#0F1117] hover:text-white"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(o.id, o.title)}
-                          className="rounded-md p-1.5 text-[#6B6D77] hover:bg-red-500/10 hover:text-red-400"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+              </thead>
+              <tbody className="divide-y divide-[#2A2D37]">
+                {offers.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-12 text-center text-sm text-[#4A4D57]">
+                      No featured offers
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  <SortableContext
+                    items={offers.map((o) => o.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {offers.map((o) => (
+                      <SortableOfferRow
+                        key={o.id}
+                        offer={o}
+                        onToggleActive={toggleActive}
+                        onEdit={openEdit}
+                        onDelete={handleDelete}
+                      />
+                    ))}
+                  </SortableContext>
+                )}
+              </tbody>
+            </table>
+            <DragOverlay dropAnimation={null}>
+              {activeOffer ? <DragOverlayRow offer={activeOffer} /> : null}
+            </DragOverlay>
+          </DndContext>
         </div>
       </div>
 

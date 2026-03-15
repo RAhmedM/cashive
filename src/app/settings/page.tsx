@@ -10,6 +10,7 @@ import {
 } from "@/components/Part3Components";
 import { CopyButton, ProgressBar, ProviderAvatar } from "@/components/SharedComponents";
 import BeeLoader from "@/components/BeeLoader";
+import SurveyProfileModal from "@/components/SurveyProfileModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
 import { useMutate } from "@/hooks/useApi";
@@ -55,6 +56,7 @@ export default function SettingsPage() {
 
   const [activeSection, setActiveSection] = React.useState("Account");
   const [toast, setToast] = React.useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
+  const [profileModalOpen, setProfileModalOpen] = React.useState(false);
   const [formInitialized, setFormInitialized] = React.useState(false);
   const [formState, setFormState] = React.useState({
     emailNotifications: true,
@@ -377,7 +379,12 @@ export default function SettingsPage() {
                       <p className="text-sm font-medium text-text-primary">Survey Profile</p>
                       <p className="text-xs text-text-tertiary">Complete this to improve survey matching and payouts.</p>
                     </div>
-                    <button className="rounded-lg border border-accent-gold/20 px-3 py-2 text-xs font-semibold text-accent-gold">Complete Profile</button>
+                    <button
+                      onClick={() => setProfileModalOpen(true)}
+                      className="rounded-lg border border-accent-gold/20 px-3 py-2 text-xs font-semibold text-accent-gold"
+                    >
+                      Complete Profile
+                    </button>
                   </div>
                   <ProgressBar value={user.stats.surveyProfileCompletion} max={100} showLabel />
                 </div>
@@ -608,6 +615,16 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Survey profile modal */}
+      <SurveyProfileModal
+        open={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        onSaved={() => {
+          refreshUser();
+          showToast("Survey profile updated", "success");
+        }}
+      />
     </AppLayout>
   );
 }

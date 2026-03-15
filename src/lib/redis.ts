@@ -6,6 +6,7 @@
  * the WebSocket server.
  */
 import Redis from "ioredis";
+import { logger } from "@/lib/logger";
 
 const globalForRedis = globalThis as unknown as {
   redis: Redis | undefined;
@@ -15,7 +16,7 @@ function createRedisClient(): Redis {
   const url = process.env.REDIS_URL;
   if (!url) {
     // In development without Redis, return a client that will fail gracefully
-    console.warn("[Redis] REDIS_URL not set — Redis features will be unavailable");
+    logger.warn("REDIS_URL not set — Redis features will be unavailable");
     return new Redis({ lazyConnect: true, maxRetriesPerRequest: 0 });
   }
 

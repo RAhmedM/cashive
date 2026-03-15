@@ -257,6 +257,124 @@ export function ChatInput({
   );
 }
 
+function ChatPanelSupportTab() {
+  const [expanded, setExpanded] = React.useState<number | null>(0);
+  const [view, setView] = React.useState<"faq" | "form" | "success">("faq");
+  const [category, setCategory] = React.useState("OTHER");
+  const [subject, setSubject] = React.useState("");
+  const [message, setMessage] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [createdTicketId, setCreatedTicketId] = React.useState("");
+  const [descInput, setDescInput] = React.useState("");
+
+  const faqs = [
+    { question: "How do I withdraw?", answer: "Go to Cashout, choose a payment method, enter your details, and confirm the withdrawal." },
+    { question: "Why is my offer not credited?", answer: "Some offers take time to validate. Make sure tracking was enabled and the requirement was completed exactly." },
+    { question: "How long do withdrawals take?", answer: "Most crypto and PayPal methods process quickly, while gift cards can take up to 24 hours." },
+    { question: "How do I verify my account?", answer: "Open Settings > Security and start the identity verification flow before your first withdrawal." },
+  ];
+
+  const categories = [
+    { value: "WITHDRAWAL", label: "Withdrawal Issue" },
+    { value: "OFFER_NOT_CREDITED", label: "Missing Credit" },
+    { value: "ACCOUNT", label: "Account Issue" },
+    { value: "KYC", label: "KYC / Verification" },
+    { value: "OTHER", label: "Other" },
+  ];
+
+  const resetForm = () => { setCategory("OTHER"); setSubject(""); setMessage(""); setError(""); setDescInput(""); };
+
+  const openCreateForm = (prefill?: string) => { resetForm(); if (prefill) setMessage(prefill); setView("form"); };
+
+  const handleSubmit = async () => {
+    if (!subject.trim() || !message.trim()) { setError("Please fill in both subject and message."); return; }
+    setLoading(true); setError("");
+    try {
+      const { api } = await import("@/lib/api");
+      const res = await api.post<{ ticket: { id: string } }>("/api/user/me/support", { category, subject: subject.trim(), message: message.trim() });
+      setCreatedTicketId(res.ticket.id);
+      setView("success");
+    } catch (err) {
+      setError(err && typeof err === "object" && "message" in err ? (err as { message: string }).message : "Something went wrong.");
+    } finally { setLoading(false); }
+  };
+
+  const handleDescSubmit = () => { const t = descInput.trim(); if (!t) return; openCreateForm(t); setDescInput(""); };
+
+  if (view === "form") {
+    return (
+      <div className="flex-1 overflow-y-auto p-4">
+        <button type="button" onClick={() => setView("faq")} className="mb-3 text-xs text-text-tertiary hover:text-accent-gold transition-colors">&larr; Back to FAQ</button>
+        <div className="space-y-3">
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium text-text-primary">Category</span>
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-xl border border-border bg-bg-deepest px-3 py-2.5 text-sm text-text-primary outline-none focus:border-accent-gold">
+              {categories.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium text-text-primary">Subject</span>
+            <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Brief summary" maxLength={200} className="w-full rounded-xl border border-border bg-bg-deepest px-3 py-2.5 text-sm text-text-primary outline-none placeholder:text-text-tertiary focus:border-accent-gold" />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium text-text-primary">Message</span>
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Describe your issue..." rows={4} maxLength={5000} className="w-full resize-none rounded-xl border border-border bg-bg-deepest px-3 py-2.5 text-sm text-text-primary outline-none placeholder:text-text-tertiary focus:border-accent-gold" />
+          </label>
+        </div>
+        {error ? <p className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p> : null}
+        <button type="button" onClick={handleSubmit} disabled={loading || !subject.trim() || !message.trim()} className="mt-4 w-full rounded-lg bg-accent-gold px-4 py-2.5 text-sm font-semibold text-bg-deepest transition-all hover:bg-accent-gold-hover disabled:cursor-not-allowed disabled:opacity-50">{loading ? "Submitting..." : "Submit Ticket"}</button>
+      </div>
+    );
+  }
+
+  if (view === "success") {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-success/10"><Check className="w-7 h-7 text-success" /></div>
+        <h4 className="mb-1 font-heading text-base font-bold text-text-primary">Ticket Created</h4>
+        <p className="mb-1 text-xs text-text-secondary">Your support ticket has been submitted.</p>
+        <p className="mb-5 font-mono text-xs text-text-tertiary">ID: {createdTicketId.slice(0, 8)}...</p>
+        <div className="w-full space-y-2">
+          <Link href="/settings" className="block w-full rounded-lg border border-border px-4 py-2.5 text-center text-sm font-medium text-text-secondary hover:border-accent-gold/30 hover:text-text-primary">View My Tickets</Link>
+          <button type="button" onClick={() => { resetForm(); setView("faq"); }} className="w-full rounded-lg bg-accent-gold px-4 py-2.5 text-sm font-semibold text-bg-deepest hover:bg-accent-gold-hover">Back to FAQ</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex-1 overflow-y-auto p-4">
+        <p className="mb-3 text-xs text-text-secondary">Browse common questions or create a support ticket.</p>
+        <div className="space-y-2">
+          {faqs.map((faq, index) => {
+            const isOpen = expanded === index;
+            return (
+              <div key={faq.question} className="rounded-xl border border-border bg-bg-elevated/60">
+                <button type="button" onClick={() => setExpanded(isOpen ? null : index)} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
+                  <span className="text-sm font-medium text-text-primary">{faq.question}</span>
+                  {isOpen ? <ChevronUp className="w-4 h-4 text-text-secondary" /> : <ChevronDown className="w-4 h-4 text-text-secondary" />}
+                </button>
+                {isOpen ? <p className="px-4 pb-3 text-xs leading-5 text-text-secondary">{faq.answer}</p> : null}
+              </div>
+            );
+          })}
+        </div>
+        <button type="button" onClick={() => openCreateForm()} className="mt-4 w-full rounded-lg bg-accent-gold px-4 py-2.5 text-sm font-semibold text-bg-deepest transition-all hover:bg-accent-gold-hover">Create Ticket</button>
+        <Link href="/settings" className="mt-2 block w-full rounded-lg border border-border px-4 py-2.5 text-center text-sm font-medium text-text-secondary transition-colors hover:border-accent-gold/30 hover:text-text-primary">My Tickets</Link>
+      </div>
+      <div className="border-t border-border p-3">
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-bg-deepest px-3 py-2">
+          <MessageCircleQuestion className="w-4 h-4 text-text-tertiary" />
+          <input value={descInput} onChange={(e) => setDescInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleDescSubmit(); } }} placeholder="Describe your issue..." className="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-tertiary" />
+          <button type="button" onClick={handleDescSubmit} disabled={!descInput.trim()} className="rounded-full bg-accent-gold p-2 text-bg-deepest disabled:opacity-50"><SendHorizontal className="w-4 h-4" /></button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function ChatPanel({
   open,
   onClose,
@@ -413,57 +531,34 @@ export function ChatPanel({
           </>
         ) : (
           /* Support tab content */
-          <>
-            <div className="flex-1 overflow-y-auto p-4">
-              <p className="mb-3 text-xs text-text-secondary">
-                Browse common questions or start a live chat with our team.
-              </p>
-              <div className="space-y-2">
-                {faqs.map((faq, index) => {
-                  const isOpen = expanded === index;
-                  return (
-                    <div key={faq.question} className="rounded-xl border border-border bg-bg-elevated/60">
-                      <button
-                        type="button"
-                        onClick={() => setExpanded(isOpen ? null : index)}
-                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-                      >
-                        <span className="text-sm font-medium text-text-primary">{faq.question}</span>
-                        {isOpen ? <ChevronUp className="w-4 h-4 text-text-secondary" /> : <ChevronDown className="w-4 h-4 text-text-secondary" />}
-                      </button>
-                      {isOpen ? <p className="px-4 pb-3 text-xs leading-5 text-text-secondary">{faq.answer}</p> : null}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <button className="mt-4 w-full rounded-lg bg-accent-gold px-4 py-2.5 text-sm font-semibold text-bg-deepest transition-all hover:bg-accent-gold-hover">
-                Start Live Chat
-              </button>
-            </div>
-
-            <div className="border-t border-border p-3">
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-bg-deepest px-3 py-2">
-                <MessageCircleQuestion className="w-4 h-4 text-text-tertiary" />
-                <input
-                  placeholder="Describe your issue..."
-                  className="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-tertiary"
-                />
-                <button className="rounded-full bg-accent-gold p-2 text-bg-deepest">
-                  <SendHorizontal className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </>
+          <ChatPanelSupportTab />
         )}
       </aside>
     </>
   );
 }
 
+const TICKET_CATEGORIES = [
+  { value: "WITHDRAWAL", label: "Withdrawal Issue" },
+  { value: "OFFER_NOT_CREDITED", label: "Missing Credit" },
+  { value: "ACCOUNT", label: "Account Issue" },
+  { value: "KYC", label: "KYC / Verification" },
+  { value: "OTHER", label: "Other" },
+] as const;
+
+type SupportView = "faq" | "form" | "success";
+
 export function FloatingSupportButton() {
   const [open, setOpen] = React.useState(false);
   const [expanded, setExpanded] = React.useState<number | null>(0);
+  const [view, setView] = React.useState<SupportView>("faq");
+  const [category, setCategory] = React.useState("OTHER");
+  const [subject, setSubject] = React.useState("");
+  const [message, setMessage] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [createdTicketId, setCreatedTicketId] = React.useState("");
+  const [descInput, setDescInput] = React.useState("");
 
   const faqs = [
     {
@@ -484,6 +579,64 @@ export function FloatingSupportButton() {
     },
   ];
 
+  const resetForm = () => {
+    setCategory("OTHER");
+    setSubject("");
+    setMessage("");
+    setError("");
+    setDescInput("");
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    // Reset to FAQ view after closing
+    setTimeout(() => {
+      setView("faq");
+      resetForm();
+    }, 300);
+  };
+
+  const openCreateForm = (prefillMessage?: string) => {
+    resetForm();
+    if (prefillMessage) {
+      setMessage(prefillMessage);
+    }
+    setView("form");
+  };
+
+  const handleSubmit = async () => {
+    if (!subject.trim() || !message.trim()) {
+      setError("Please fill in both subject and message.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const { api } = await import("@/lib/api");
+      const res = await api.post<{ ticket: { id: string } }>(
+        "/api/user/me/support",
+        { category, subject: subject.trim(), message: message.trim() }
+      );
+      setCreatedTicketId(res.ticket.id);
+      setView("success");
+    } catch (err) {
+      if (err && typeof err === "object" && "message" in err) {
+        setError((err as { message: string }).message);
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDescSubmit = () => {
+    const trimmed = descInput.trim();
+    if (!trimmed) return;
+    openCreateForm(trimmed);
+    setDescInput("");
+  };
+
   return (
     <>
       <button
@@ -502,55 +655,200 @@ export function FloatingSupportButton() {
               <BeeIcon className="w-6 h-6" />
               <div>
                 <h3 className="font-heading text-sm font-bold text-text-primary">Cashive Support</h3>
-                <p className="text-[11px] text-text-tertiary">FAQ + live help</p>
+                <p className="text-[11px] text-text-tertiary">
+                  {view === "faq" && "FAQ & Tickets"}
+                  {view === "form" && "Create a Ticket"}
+                  {view === "success" && "Ticket Created"}
+                </p>
               </div>
             </div>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={handleClose}
               className="rounded-lg p-2 text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="max-h-[48vh] overflow-y-auto p-4 md:max-h-[480px]">
-            <div className="space-y-2">
-              {faqs.map((faq, index) => {
-                const isOpen = expanded === index;
-                return (
-                  <div key={faq.question} className="rounded-xl border border-border bg-bg-elevated/60">
-                    <button
-                      type="button"
-                      onClick={() => setExpanded(isOpen ? null : index)}
-                      className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-                    >
-                      <span className="text-sm font-medium text-text-primary">{faq.question}</span>
-                      {isOpen ? <ChevronUp className="w-4 h-4 text-text-secondary" /> : <ChevronDown className="w-4 h-4 text-text-secondary" />}
-                    </button>
-                    {isOpen ? <p className="px-4 pb-3 text-xs leading-5 text-text-secondary">{faq.answer}</p> : null}
-                  </div>
-                );
-              })}
-            </div>
+          {/* FAQ View */}
+          {view === "faq" ? (
+            <>
+              <div className="max-h-[48vh] overflow-y-auto p-4 md:max-h-[480px]">
+                <div className="space-y-2">
+                  {faqs.map((faq, index) => {
+                    const isOpen = expanded === index;
+                    return (
+                      <div key={faq.question} className="rounded-xl border border-border bg-bg-elevated/60">
+                        <button
+                          type="button"
+                          onClick={() => setExpanded(isOpen ? null : index)}
+                          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                        >
+                          <span className="text-sm font-medium text-text-primary">{faq.question}</span>
+                          {isOpen ? <ChevronUp className="w-4 h-4 text-text-secondary" /> : <ChevronDown className="w-4 h-4 text-text-secondary" />}
+                        </button>
+                        {isOpen ? <p className="px-4 pb-3 text-xs leading-5 text-text-secondary">{faq.answer}</p> : null}
+                      </div>
+                    );
+                  })}
+                </div>
 
-            <button className="mt-4 w-full rounded-lg bg-accent-gold px-4 py-2.5 text-sm font-semibold text-bg-deepest transition-all hover:bg-accent-gold-hover">
-              Start Live Chat
-            </button>
-          </div>
+                <button
+                  type="button"
+                  onClick={() => openCreateForm()}
+                  className="mt-4 w-full rounded-lg bg-accent-gold px-4 py-2.5 text-sm font-semibold text-bg-deepest transition-all hover:bg-accent-gold-hover"
+                >
+                  Create Ticket
+                </button>
 
-          <div className="border-t border-border p-3">
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-bg-deepest px-3 py-2">
-              <MessageCircleQuestion className="w-4 h-4 text-text-tertiary" />
-              <input
-                placeholder="Describe your issue..."
-                className="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-tertiary"
-              />
-              <button className="rounded-full bg-accent-gold p-2 text-bg-deepest">
-                <SendHorizontal className="w-4 h-4" />
+                <Link
+                  href="/settings"
+                  className="mt-2 block w-full rounded-lg border border-border px-4 py-2.5 text-center text-sm font-medium text-text-secondary transition-colors hover:border-accent-gold/30 hover:text-text-primary"
+                  onClick={handleClose}
+                >
+                  My Tickets
+                </Link>
+              </div>
+
+              <div className="border-t border-border p-3">
+                <div className="flex items-center gap-2 rounded-xl border border-border bg-bg-deepest px-3 py-2">
+                  <MessageCircleQuestion className="w-4 h-4 text-text-tertiary" />
+                  <input
+                    value={descInput}
+                    onChange={(e) => setDescInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleDescSubmit();
+                      }
+                    }}
+                    placeholder="Describe your issue..."
+                    className="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleDescSubmit}
+                    className="rounded-full bg-accent-gold p-2 text-bg-deepest disabled:opacity-50"
+                    disabled={!descInput.trim()}
+                  >
+                    <SendHorizontal className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : null}
+
+          {/* Create Ticket Form */}
+          {view === "form" ? (
+            <div className="max-h-[52vh] overflow-y-auto p-4 md:max-h-[500px]">
+              <button
+                type="button"
+                onClick={() => setView("faq")}
+                className="mb-3 text-xs text-text-tertiary hover:text-accent-gold transition-colors"
+              >
+                &larr; Back to FAQ
+              </button>
+
+              <div className="space-y-3">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-medium text-text-primary">Category</span>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-bg-deepest px-3 py-2.5 text-sm text-text-primary outline-none transition-all focus:border-accent-gold"
+                  >
+                    {TICKET_CATEGORIES.map((cat) => (
+                      <option key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-medium text-text-primary">Subject</span>
+                  <input
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="Brief summary of your issue"
+                    maxLength={200}
+                    className="w-full rounded-xl border border-border bg-bg-deepest px-3 py-2.5 text-sm text-text-primary outline-none transition-all placeholder:text-text-tertiary focus:border-accent-gold"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-medium text-text-primary">Message</span>
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Describe your issue in detail..."
+                    rows={4}
+                    maxLength={5000}
+                    className="w-full resize-none rounded-xl border border-border bg-bg-deepest px-3 py-2.5 text-sm text-text-primary outline-none transition-all placeholder:text-text-tertiary focus:border-accent-gold"
+                  />
+                  {message.length >= 4500 ? (
+                    <span className="mt-1 block text-right text-[10px] text-text-tertiary">
+                      {message.length}/5000
+                    </span>
+                  ) : null}
+                </label>
+              </div>
+
+              {error ? (
+                <p className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">
+                  {error}
+                </p>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={loading || !subject.trim() || !message.trim()}
+                className="mt-4 w-full rounded-lg bg-accent-gold px-4 py-2.5 text-sm font-semibold text-bg-deepest transition-all hover:bg-accent-gold-hover disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? "Submitting..." : "Submit Ticket"}
               </button>
             </div>
-          </div>
+          ) : null}
+
+          {/* Success View */}
+          {view === "success" ? (
+            <div className="p-6 text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-success/10">
+                <Check className="w-7 h-7 text-success" />
+              </div>
+              <h4 className="mb-1 font-heading text-base font-bold text-text-primary">
+                Ticket Created
+              </h4>
+              <p className="mb-1 text-xs text-text-secondary">
+                Your support ticket has been submitted successfully.
+              </p>
+              <p className="mb-5 font-mono text-xs text-text-tertiary">
+                Ticket ID: {createdTicketId.slice(0, 8)}...
+              </p>
+
+              <div className="space-y-2">
+                <Link
+                  href="/settings"
+                  className="block w-full rounded-lg border border-border px-4 py-2.5 text-center text-sm font-medium text-text-secondary transition-colors hover:border-accent-gold/30 hover:text-text-primary"
+                  onClick={handleClose}
+                >
+                  View My Tickets
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetForm();
+                    setView("faq");
+                  }}
+                  className="w-full rounded-lg bg-accent-gold px-4 py-2.5 text-sm font-semibold text-bg-deepest transition-all hover:bg-accent-gold-hover"
+                >
+                  Back to FAQ
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </>

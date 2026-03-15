@@ -15,6 +15,14 @@
  *   This server subscribes → broadcasts to WebSocket clients
  */
 import "dotenv/config";
+import * as Sentry from "@sentry/node";
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: 0.1,
+  environment: process.env.NODE_ENV,
+  enabled: !!process.env.SENTRY_DSN,
+});
+import { socketLogger } from "../lib/logger";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import Redis from "ioredis";
@@ -165,7 +173,7 @@ io.use(async (socket, next) => {
 
     next();
   } catch (err) {
-    console.error("[Socket] Auth error:", err);
+    socketLogger.error({ err }, "Auth error");
     next(new Error("Authentication failed"));
   }
 });
@@ -215,7 +223,7 @@ setInterval(() => {
 
 io.on("connection", (socket) => {
   const { userId, username } = socket.data;
-  console.log(`[Socket] Connected: ${username} (${userId})`);
+  socketLogger.info({ userId, username }, "Connected");
 
   // Join user-specific room for targeted events (balance, notifications)
   socket.join(`user:${userId}`);
@@ -310,7 +318,7 @@ io.on("connection", (socket) => {
 
       callback({ ok: true, message });
     } catch (err) {
-      console.error("[Socket] Chat send error:", err);
+      socketLogger.error({ err }, "Chat send error");
       callback({ ok: false, error: "Failed to send message" });
     }
   });
@@ -342,7 +350,7 @@ io.on("connection", (socket) => {
   // ---- Disconnect ----
 
   socket.on("disconnect", () => {
-    console.log(`[Socket] Disconnected: ${username} (${userId})`);
+    socketLogger.info({ userId, username }, "Disconnected");
 
     // Remove from all chat rooms
     for (const [room, users] of onlineUsers) {
@@ -416,7 +424,7 @@ redisSub.on("message", (channel, message) => {
       return;
     }
   } catch (err) {
-    console.error("[Socket] Error processing Redis message:", err);
+    socketLogger.error({ err }, "Error processing Redis message");
   }
 });
 
@@ -428,9 +436,9 @@ redisSub.subscribe(
   REDIS_CHANNELS.RACE_UPDATE,
   (err) => {
     if (err) {
-      console.error("[Socket] Redis subscribe error:", err);
+      socketLogger.error({ err }, "Redis subscribe error");
     } else {
-      console.log("[Socket] Subscribed to global Redis channels");
+      socketLogger.info("Subscribed to global Redis channels");
     }
   }
 );
@@ -438,9 +446,9 @@ redisSub.subscribe(
 // For user-specific channels, we use pattern subscribe
 redisSub.psubscribe("user:*:balance", "user:*:notification", (err) => {
   if (err) {
-    console.error("[Socket] Redis psubscribe error:", err);
+    socketLogger.error({ err }, "Redis psubscribe error");
   } else {
-    console.log("[Socket] Subscribed to user-specific Redis patterns");
+    socketLogger.info("Subscribed to user-specific Redis patterns");
   }
 });
 
@@ -469,22 +477,20 @@ redisSub.on("pmessage", (_pattern, channel, message) => {
       return;
     }
   } catch (err) {
-    console.error("[Socket] Error processing Redis pmessage:", err);
+    socketLogger.error({ err }, "Error processing Redis pmessage");
   }
 });
 
 // ---- Start Server ----
 
 httpServer.listen(PORT, () => {
-  console.log(`[Socket] cashive-socket listening on port ${PORT}`);
-  console.log(`[Socket] CORS origin: ${CORS_ORIGIN}`);
-  console.log(`[Socket] Redis: ${REDIS_URL}`);
+  socketLogger.info({ port: PORT, cors: CORS_ORIGIN, redis: REDIS_URL }, "cashive-socket listening");
 });
 
 // ---- Graceful Shutdown ----
 
 async function shutdown() {
-  console.log("[Socket] Shutting down...");
+  socketLogger.info("Shutting down...");
   io.close();
   redisSub.disconnect();
   redisCmd.disconnect();

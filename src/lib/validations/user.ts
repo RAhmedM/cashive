@@ -44,14 +44,31 @@ export const updateProfileSchema = z.object({
 });
 
 export const updateSurveyProfileSchema = z.object({
-  age: z.number().int().min(13).max(120).optional().nullable(),
-  gender: z.string().max(20).optional().nullable(),
-  education: z.string().max(50).optional().nullable(),
-  employment: z.string().max(50).optional().nullable(),
-  income: z.string().max(50).optional().nullable(),
+  age: z.number().int().min(18, "Must be at least 18").max(120).optional().nullable(),
+  gender: z
+    .enum(["male", "female", "non_binary", "prefer_not_to_say"])
+    .optional()
+    .nullable(),
+  education: z
+    .enum(["high_school", "some_college", "bachelors", "masters", "doctorate", "other"])
+    .optional()
+    .nullable(),
+  employmentStatus: z
+    .enum(["employed_full", "employed_part", "self_employed", "unemployed", "student", "retired"])
+    .optional()
+    .nullable(),
+  incomeRange: z
+    .enum(["under_25k", "25k_50k", "50k_75k", "75k_100k", "100k_150k", "over_150k", "prefer_not_to_say"])
+    .optional()
+    .nullable(),
+  householdSize: z.number().int().min(1).max(20).optional().nullable(),
+  hasChildren: z.boolean().optional().nullable(),
+  maritalStatus: z
+    .enum(["single", "married", "divorced", "widowed", "prefer_not_to_say"])
+    .optional()
+    .nullable(),
+  industry: z.string().max(100).optional().nullable(),
   interests: z.array(z.string().max(50)).max(20).optional(),
-  household: z.number().int().min(1).max(20).optional().nullable(),
-  children: z.boolean().optional().nullable(),
 });
 
 export const redeemPromoSchema = z.object({

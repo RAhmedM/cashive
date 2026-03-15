@@ -23,6 +23,10 @@ import {
   Clock,
   Monitor,
   AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  Fingerprint,
+  Headset,
 } from "lucide-react";
 
 // ---- Types ----
@@ -65,6 +69,9 @@ interface UserDetail {
     referrals: number;
     achievements: number;
     sessions: number;
+    fraudEvents: number;
+    deviceFingerprints: number;
+    supportTickets: number;
   };
 }
 
@@ -130,6 +137,54 @@ interface SessionInfo {
   createdAt: string;
 }
 
+interface FraudEvent {
+  id: string;
+  eventType: string;
+  scoreImpact: number;
+  scoreAfter: number;
+  detail: string;
+  evidence: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+interface DeviceFingerprintInfo {
+  id: string;
+  fingerprintHash: string;
+  userAgent: string | null;
+  screenResolution: string | null;
+  timezone: string | null;
+  ip: string;
+  ipType: string | null;
+  ipCountry: string | null;
+  ipFraudScore: number | null;
+  isSignupDevice: boolean;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  otherUsersCount: number;
+}
+
+interface SupportTicket {
+  id: string;
+  subject: string;
+  category: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt: string | null;
+  messages: SupportMessage[];
+  _count: { messages: number };
+}
+
+interface SupportMessage {
+  id: string;
+  senderId: string;
+  isAdmin: boolean;
+  content: string;
+  attachmentUrl: string | null;
+  createdAt: string;
+}
+
 interface UserData {
   user: UserDetail;
   recentTransactions: Transaction[];
@@ -139,9 +194,12 @@ interface UserData {
   referredUsers: ReferredUser[];
   achievements: Achievement[];
   sessions: SessionInfo[];
+  fraudEvents: FraudEvent[];
+  deviceFingerprints: DeviceFingerprintInfo[];
+  supportTickets: SupportTicket[];
 }
 
-type Tab = "transactions" | "offers" | "withdrawals" | "referrals" | "achievements" | "sessions";
+type Tab = "transactions" | "offers" | "withdrawals" | "referrals" | "achievements" | "sessions" | "fraud" | "support";
 
 // ---- Helpers ----
 
@@ -154,7 +212,7 @@ function formatCents(cents: number): string {
 }
 
 function formatDate(d: string | null): string {
-  if (!d) return "—";
+  if (!d) return "\u2014";
   return new Date(d).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -163,7 +221,7 @@ function formatDate(d: string | null): string {
 }
 
 function formatDateTime(d: string | null): string {
-  if (!d) return "—";
+  if (!d) return "\u2014";
   return new Date(d).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
@@ -201,6 +259,14 @@ const statusColors: Record<string, string> = {
   CREDITED: "text-green-400 bg-green-400/10",
   HELD: "text-yellow-400 bg-yellow-400/10",
   REVERSED: "text-red-400 bg-red-400/10",
+};
+
+const ticketStatusColors: Record<string, string> = {
+  OPEN: "text-blue-400 bg-blue-400/10",
+  IN_PROGRESS: "text-purple-400 bg-purple-400/10",
+  WAITING_USER: "text-yellow-400 bg-yellow-400/10",
+  RESOLVED: "text-green-400 bg-green-400/10",
+  CLOSED: "text-[#6B6D77] bg-[#2A2D37]",
 };
 
 const VIP_TIERS = ["NONE", "BRONZE", "SILVER", "GOLD", "PLATINUM"] as const;
@@ -349,6 +415,8 @@ export default function AdminUserDetailPage() {
     { key: "referrals", label: "Referrals", count: user._count.referrals },
     { key: "achievements", label: "Achievements", count: user._count.achievements },
     { key: "sessions", label: "Sessions", count: user._count.sessions },
+    { key: "fraud", label: "Fraud", count: user._count.fraudEvents },
+    { key: "support", label: "Support", count: user._count.supportTickets },
   ];
 
   return (
@@ -575,6 +643,16 @@ export default function AdminUserDetailPage() {
           <AchievementsTab items={data.achievements} />
         )}
         {activeTab === "sessions" && <SessionsTab items={data.sessions} />}
+        {activeTab === "fraud" && (
+          <FraudTab
+            fraudScore={user.fraudScore}
+            events={data.fraudEvents}
+            fingerprints={data.deviceFingerprints}
+          />
+        )}
+        {activeTab === "support" && (
+          <SupportTab tickets={data.supportTickets} />
+        )}
       </div>
 
       {/* ---- Modals ---- */}
@@ -1000,7 +1078,7 @@ function WithdrawalsTab({ items }: { items: Withdrawal[] }) {
                   {formatCents(w.amountUsdCents)}
                 </td>
                 <td className="whitespace-nowrap px-4 py-2 text-right font-mono text-[#6B6D77]">
-                  {w.feeUsdCents > 0 ? formatCents(w.feeUsdCents) : "—"}
+                  {w.feeUsdCents > 0 ? formatCents(w.feeUsdCents) : "\u2014"}
                 </td>
                 <td className="whitespace-nowrap px-4 py-2">
                   <span
@@ -1150,7 +1228,7 @@ function SessionsTab({ items }: { items: SessionInfo[] }) {
                   </span>
                 </td>
                 <td className="whitespace-nowrap px-4 py-2 font-mono text-xs text-[#8B8D97]">
-                  {s.ip ?? "—"}
+                  {s.ip ?? "\u2014"}
                 </td>
                 <td className="whitespace-nowrap px-4 py-2 text-xs text-[#6B6D77]">
                   <span className="flex items-center gap-1">
@@ -1166,6 +1244,343 @@ function SessionsTab({ items }: { items: SessionInfo[] }) {
           )}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// ---- Fraud Tab ----
+
+function FraudTab({
+  fraudScore,
+  events,
+  fingerprints,
+}: {
+  fraudScore: number;
+  events: FraudEvent[];
+  fingerprints: DeviceFingerprintInfo[];
+}) {
+  const [expandedEvidence, setExpandedEvidence] = useState<Set<string>>(new Set());
+
+  function toggleEvidence(id: string) {
+    setExpandedEvidence((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const scoreColor =
+    fraudScore >= 80
+      ? "text-red-400 border-red-500/30"
+      : fraudScore >= 60
+        ? "text-orange-400 border-orange-500/30"
+        : fraudScore >= 30
+          ? "text-amber-400 border-amber-500/30"
+          : "text-green-400 border-green-500/30";
+
+  const scoreBg =
+    fraudScore >= 80
+      ? "bg-red-500/5"
+      : fraudScore >= 60
+        ? "bg-orange-500/5"
+        : fraudScore >= 30
+          ? "bg-amber-500/5"
+          : "bg-green-500/5";
+
+  return (
+    <div className="p-4 space-y-6">
+      {/* Fraud Score Display */}
+      <div className="flex items-center gap-4">
+        <div
+          className={`flex h-20 w-20 items-center justify-center rounded-xl border ${scoreColor} ${scoreBg}`}
+        >
+          <span className={`text-3xl font-bold ${scoreColor.split(" ")[0]}`}>
+            {fraudScore.toFixed(0)}
+          </span>
+        </div>
+        <div>
+          <div className="text-sm font-medium text-white">Fraud Score</div>
+          <div className="text-xs text-[#6B6D77]">
+            {fraudScore >= 80
+              ? "Critical risk - immediate review needed"
+              : fraudScore >= 60
+                ? "High risk - flagged for review"
+                : fraudScore >= 30
+                  ? "Moderate risk - monitoring"
+                  : "Low risk - normal activity"}
+          </div>
+        </div>
+      </div>
+
+      {/* Fraud Event Timeline */}
+      <div>
+        <h3 className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-[#6B6D77]">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          Fraud Event Timeline ({events.length})
+        </h3>
+        {events.length === 0 ? (
+          <div className="rounded-lg border border-[#2A2D37] bg-[#0F1117] p-4 text-center text-sm text-[#4A4D57]">
+            No fraud events recorded
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {events.map((event) => (
+              <div
+                key={event.id}
+                className="rounded-lg border border-[#2A2D37] bg-[#0F1117] px-4 py-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-400">
+                        {event.eventType.replace(/_/g, " ")}
+                      </span>
+                      <span
+                        className={`text-xs font-mono ${
+                          event.scoreImpact > 0 ? "text-red-400" : "text-green-400"
+                        }`}
+                      >
+                        {event.scoreImpact > 0 ? "+" : ""}
+                        {event.scoreImpact.toFixed(1)}
+                      </span>
+                      <span className="text-[10px] text-[#4A4D57]">
+                        Score after: {event.scoreAfter.toFixed(1)}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-sm text-[#8B8D97]">
+                      {event.detail}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-[#4A4D57]">
+                      {formatDateTime(event.createdAt)}
+                    </span>
+                    {event.evidence != null && (
+                      <button
+                        onClick={() => toggleEvidence(event.id)}
+                        className="rounded-md p-1 text-[#6B6D77] hover:bg-[#1A1D27] hover:text-white"
+                        title="Toggle evidence"
+                      >
+                        {expandedEvidence.has(event.id) ? (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {event.evidence != null && expandedEvidence.has(event.id) && (
+                  <div className="mt-2 rounded-md border border-[#2A2D37] bg-[#12141B] p-3">
+                    <pre className="overflow-x-auto whitespace-pre-wrap text-[11px] text-[#8B8D97]">
+                      {JSON.stringify(event.evidence, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Device Fingerprints */}
+      <div>
+        <h3 className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-[#6B6D77]">
+          <Fingerprint className="h-3.5 w-3.5" />
+          Device Fingerprints ({fingerprints.length})
+        </h3>
+        {fingerprints.length === 0 ? (
+          <div className="rounded-lg border border-[#2A2D37] bg-[#0F1117] p-4 text-center text-sm text-[#4A4D57]">
+            No device fingerprints recorded
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-[#2A2D37]">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-[#2A2D37] bg-[#0F1117] text-[11px] font-medium uppercase tracking-wider text-[#6B6D77]">
+                  <th className="px-4 py-2.5">Fingerprint</th>
+                  <th className="px-4 py-2.5">IP Address</th>
+                  <th className="px-4 py-2.5">IP Type</th>
+                  <th className="px-4 py-2.5">Country</th>
+                  <th className="px-4 py-2.5">First Seen</th>
+                  <th className="px-4 py-2.5">Last Seen</th>
+                  <th className="px-4 py-2.5">Shared</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#2A2D37]">
+                {fingerprints.map((fp) => (
+                  <tr
+                    key={fp.id}
+                    className={fp.otherUsersCount > 0 ? "bg-red-500/5" : ""}
+                  >
+                    <td className="whitespace-nowrap px-4 py-2">
+                      <span className="flex items-center gap-1.5 font-mono text-xs text-[#8B8D97]">
+                        {fp.fingerprintHash.slice(0, 12)}...
+                        {fp.isSignupDevice && (
+                          <span className="rounded bg-blue-500/10 px-1 py-0.5 text-[9px] text-blue-400">
+                            SIGNUP
+                          </span>
+                        )}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2 font-mono text-xs text-[#8B8D97]">
+                      {fp.ip}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2">
+                      {fp.ipType ? (
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                            fp.ipType === "RESIDENTIAL"
+                              ? "text-green-400 bg-green-400/10"
+                              : fp.ipType === "VPN" || fp.ipType === "TOR"
+                                ? "text-red-400 bg-red-400/10"
+                                : "text-yellow-400 bg-yellow-400/10"
+                          }`}
+                        >
+                          {fp.ipType}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-[#4A4D57]">{"\u2014"}</span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2 text-xs text-[#8B8D97]">
+                      {fp.ipCountry ?? "\u2014"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2 text-xs text-[#6B6D77]">
+                      {formatDateTime(fp.firstSeenAt)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2 text-xs text-[#6B6D77]">
+                      {formatDateTime(fp.lastSeenAt)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2">
+                      {fp.otherUsersCount > 0 ? (
+                        <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-400">
+                          {fp.otherUsersCount} other user{fp.otherUsersCount !== 1 ? "s" : ""}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-[#4A4D57]">Unique</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---- Support Tab ----
+
+function SupportTab({ tickets }: { tickets: SupportTicket[] }) {
+  const [expandedTicket, setExpandedTicket] = useState<string | null>(null);
+
+  return (
+    <div className="p-4 space-y-2">
+      {tickets.length === 0 ? (
+        <div className="py-4 text-center text-sm text-[#4A4D57]">
+          No support tickets
+        </div>
+      ) : (
+        tickets.map((ticket) => (
+          <div
+            key={ticket.id}
+            className="rounded-lg border border-[#2A2D37] bg-[#0F1117]"
+          >
+            {/* Ticket header */}
+            <button
+              onClick={() =>
+                setExpandedTicket(
+                  expandedTicket === ticket.id ? null : ticket.id
+                )
+              }
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[#1A1D27]/50"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <Headset className="h-3.5 w-3.5 shrink-0 text-[#6B6D77]" />
+                  <span className="truncate text-sm font-medium text-white">
+                    {ticket.subject}
+                  </span>
+                  <span
+                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                      ticketStatusColors[ticket.status] ?? "text-[#6B6D77] bg-[#2A2D37]"
+                    }`}
+                  >
+                    {ticket.status.replace(/_/g, " ")}
+                  </span>
+                  <span className="shrink-0 rounded bg-[#1A1D27] px-1.5 py-0.5 text-[10px] text-[#6B6D77]">
+                    {ticket.category.replace(/_/g, " ")}
+                  </span>
+                </div>
+                <div className="mt-0.5 flex items-center gap-3 text-[11px] text-[#4A4D57]">
+                  <span>Created {formatDateTime(ticket.createdAt)}</span>
+                  <span>Updated {formatDateTime(ticket.updatedAt)}</span>
+                  <span>{ticket._count.messages} message{ticket._count.messages !== 1 ? "s" : ""}</span>
+                </div>
+              </div>
+              <div className="shrink-0 text-[#6B6D77]">
+                {expandedTicket === ticket.id ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </div>
+            </button>
+
+            {/* Expanded message thread */}
+            {expandedTicket === ticket.id && (
+              <div className="border-t border-[#2A2D37] px-4 py-3">
+                {ticket.messages.length === 0 ? (
+                  <div className="text-xs text-[#4A4D57]">No messages</div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {ticket.messages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`rounded-lg px-3 py-2 ${
+                          msg.isAdmin
+                            ? "ml-6 border border-[#F5A623]/20 bg-[#F5A623]/5"
+                            : "mr-6 border border-[#2A2D37] bg-[#12141B]"
+                        }`}
+                      >
+                        <div className="mb-1 flex items-center gap-2 text-[10px]">
+                          <span
+                            className={`font-medium ${
+                              msg.isAdmin ? "text-[#F5A623]" : "text-[#8B8D97]"
+                            }`}
+                          >
+                            {msg.isAdmin ? "Admin" : "User"}
+                          </span>
+                          <span className="text-[#4A4D57]">
+                            {formatDateTime(msg.createdAt)}
+                          </span>
+                        </div>
+                        <div className="whitespace-pre-wrap text-sm text-[#C8C9CE]">
+                          {msg.content}
+                        </div>
+                        {msg.attachmentUrl && (
+                          <a
+                            href={msg.attachmentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 inline-block text-xs text-[#F5A623] hover:underline"
+                          >
+                            View attachment
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))
+      )}
     </div>
   );
 }

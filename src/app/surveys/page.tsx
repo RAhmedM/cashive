@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import BeeLoader from "@/components/BeeLoader";
+import SurveyProfileModal from "@/components/SurveyProfileModal";
 import { surveyWalls as mockSurveyWalls, surveyStats } from "@/data/mockData";
 import { useApi } from "@/hooks/useApi";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,8 +24,9 @@ interface Provider {
 }
 
 export default function SurveysPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { data: providersData, loading } = useApi<{ providers: Provider[] }>("/api/offers/providers");
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   // Filter to SURVEY-type providers, fallback to mock data
   const surveyWalls = useMemo(() => {
@@ -93,7 +95,10 @@ export default function SurveysPage() {
             </p>
             <ProgressBar value={profileCompletion} max={100} showLabel />
             <div className="mt-3">
-              <button className="px-4 py-2 bg-accent-gold text-bg-deepest font-semibold text-sm rounded-lg hover:bg-accent-gold-hover active:scale-95 transition-all">
+              <button
+                onClick={() => setProfileModalOpen(true)}
+                className="px-4 py-2 bg-accent-gold text-bg-deepest font-semibold text-sm rounded-lg hover:bg-accent-gold-hover active:scale-95 transition-all"
+              >
                 Complete Profile
               </button>
             </div>
@@ -159,6 +164,13 @@ export default function SurveysPage() {
           ]}
         />
       </section>
+
+      {/* Survey profile modal */}
+      <SurveyProfileModal
+        open={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        onSaved={() => refreshUser()}
+      />
     </AppLayout>
   );
 }

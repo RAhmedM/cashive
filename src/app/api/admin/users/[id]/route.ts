@@ -28,6 +28,9 @@ export const GET = withAdmin(async (_request, _admin, params) => {
           referrals: true,
           achievements: true,
           sessions: true,
+          fraudEvents: true,
+          deviceFingerprints: true,
+          supportTickets: true,
         },
       },
     },
@@ -94,6 +97,52 @@ export const GET = withAdmin(async (_request, _admin, params) => {
     },
   });
 
+  // Get fraud events
+  const fraudEvents = await db.fraudEvent.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Get device fingerprints with multi-account detection
+  const deviceFingerprints = await db.deviceFingerprint.findMany({
+    where: { userId },
+    orderBy: { lastSeenAt: "desc" },
+  });
+
+  // For each fingerprint, count how many OTHER users share the same hash
+  const fingerprintHashes = [...new Set(deviceFingerprints.map((d) => d.fingerprintHash))];
+  const sharedHashCounts =
+    fingerprintHashes.length > 0
+      ? await db.deviceFingerprint.groupBy({
+          by: ["fingerprintHash"],
+          where: {
+            fingerprintHash: { in: fingerprintHashes },
+            userId: { not: userId },
+          },
+          _count: { userId: true },
+        })
+      : [];
+  const sharedCountMap = new Map(
+    sharedHashCounts.map((h) => [h.fingerprintHash, h._count.userId])
+  );
+
+  const enrichedFingerprints = deviceFingerprints.map((d) => ({
+    ...d,
+    otherUsersCount: sharedCountMap.get(d.fingerprintHash) ?? 0,
+  }));
+
+  // Get support tickets with message count
+  const supportTickets = await db.supportTicket.findMany({
+    where: { userId },
+    orderBy: { updatedAt: "desc" },
+    include: {
+      messages: {
+        orderBy: { createdAt: "asc" },
+      },
+      _count: { select: { messages: true } },
+    },
+  });
+
   return jsonOk({
     user,
     recentTransactions,
@@ -103,6 +152,9 @@ export const GET = withAdmin(async (_request, _admin, params) => {
     referredUsers,
     achievements,
     sessions,
+    fraudEvents,
+    deviceFingerprints: enrichedFingerprints,
+    supportTickets,
   });
 });
 

@@ -14,6 +14,8 @@
  * external transaction IDs. Replace with real API calls when integrating.
  */
 
+import { paymentLogger } from "@/lib/logger";
+
 // ---- Types ----
 
 export interface PayoutRequest {
@@ -61,8 +63,9 @@ export async function processPayPalPayout(
   const { PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_MODE } = process.env;
 
   if (!PAYPAL_CLIENT_ID || !PAYPAL_SECRET) {
-    console.warn(
-      `[PayPal] Credentials not configured — simulating payout of $${request.netAmountUsd} to ${request.recipientEmail}`
+    paymentLogger.warn(
+      { amount: request.netAmountUsd, recipientEmail: request.recipientEmail },
+      "PayPal credentials not configured — simulating payout"
     );
     return simulatePayout("PAYPAL", request);
   }
@@ -95,7 +98,7 @@ export async function processPayPalPayout(
 
     if (!tokenRes.ok) {
       const body = await tokenRes.text();
-      console.error(`[PayPal] Token request failed: ${tokenRes.status} ${body}`);
+      paymentLogger.error({ status: tokenRes.status, body }, "PayPal token request failed");
       return { success: false, error: "PayPal authentication failed", pendingWebhook: false };
     }
 
@@ -131,7 +134,7 @@ export async function processPayPalPayout(
 
     if (!payoutRes.ok) {
       const body = await payoutRes.text();
-      console.error(`[PayPal] Payout request failed: ${payoutRes.status} ${body}`);
+      paymentLogger.error({ status: payoutRes.status, body }, "PayPal payout request failed");
       return { success: false, error: `PayPal payout failed: ${payoutRes.status}`, pendingWebhook: false };
     }
 
@@ -139,9 +142,9 @@ export async function processPayPalPayout(
       batch_header: { payout_batch_id: string };
     };
 
-    console.info(
-      `[PayPal] Payout created: batch ${payoutData.batch_header.payout_batch_id} ` +
-        `$${request.netAmountUsd} → ${request.recipientEmail}`
+    paymentLogger.info(
+      { batchId: payoutData.batch_header.payout_batch_id, amount: request.netAmountUsd, recipientEmail: request.recipientEmail },
+      "PayPal payout created"
     );
 
     return {
@@ -150,7 +153,7 @@ export async function processPayPalPayout(
       pendingWebhook: true, // Final confirmation comes via webhook
     };
   } catch (err) {
-    console.error("[PayPal] Payout error:", err);
+    paymentLogger.error({ err }, "PayPal payout error");
     return {
       success: false,
       error: err instanceof Error ? err.message : "PayPal payout failed",
@@ -167,8 +170,9 @@ export async function processCryptoPayout(
   const { COINBASE_COMMERCE_API_KEY } = process.env;
 
   if (!COINBASE_COMMERCE_API_KEY) {
-    console.warn(
-      `[Crypto] Coinbase not configured — simulating payout of $${request.netAmountUsd} in ${request.currency} to ${request.recipientAddress}`
+    paymentLogger.warn(
+      { amount: request.netAmountUsd, currency: request.currency, recipientAddress: request.recipientAddress },
+      "Coinbase not configured — simulating payout"
     );
     return simulatePayout("CRYPTO", request);
   }
@@ -210,7 +214,7 @@ export async function processCryptoPayout(
 
     if (!res.ok) {
       const body = await res.text();
-      console.error(`[Crypto] Coinbase charge failed: ${res.status} ${body}`);
+      paymentLogger.error({ status: res.status, body }, "Coinbase charge failed");
       return {
         success: false,
         error: `Coinbase charge failed: ${res.status}`,
@@ -222,9 +226,9 @@ export async function processCryptoPayout(
       data: { id: string; code: string };
     };
 
-    console.info(
-      `[Crypto] Coinbase charge created: ${data.data.code} ` +
-        `$${request.netAmountUsd} ${request.currency} → ${request.recipientAddress}`
+    paymentLogger.info(
+      { chargeCode: data.data.code, amount: request.netAmountUsd, currency: request.currency, recipientAddress: request.recipientAddress },
+      "Coinbase charge created"
     );
 
     return {
@@ -233,7 +237,7 @@ export async function processCryptoPayout(
       pendingWebhook: true,
     };
   } catch (err) {
-    console.error("[Crypto] Payout error:", err);
+    paymentLogger.error({ err }, "Crypto payout error");
     return {
       success: false,
       error: err instanceof Error ? err.message : "Crypto payout failed",
@@ -255,9 +259,9 @@ export async function processGiftCardPayout(
   // 2. Send the card code to the user's email
   // 3. Return the order ID as externalTxId
 
-  console.warn(
-    `[GiftCard] Provider not configured — simulating ${request.cardType} gift card ` +
-      `$${request.netAmountUsd} → ${request.recipientEmail}`
+  paymentLogger.warn(
+    { cardType: request.cardType, amount: request.netAmountUsd, recipientEmail: request.recipientEmail },
+    "GiftCard provider not configured — simulating"
   );
 
   return simulatePayout("GIFT_CARD", request);

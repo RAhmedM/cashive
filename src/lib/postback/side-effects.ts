@@ -11,6 +11,7 @@
  */
 import { db } from "@/lib/db";
 import { redis } from "@/lib/redis";
+import { postbackLogger } from "@/lib/logger";
 import { awardXp, recalculateVipTier } from "@/lib/engagement";
 import type { PostbackSideEffectPayload } from "./types";
 
@@ -51,9 +52,9 @@ export async function runPostbackSideEffects(
         "pushTickerEvent",
         "pushBalanceNotification",
       ];
-      console.error(
-        `[Postback] Side effect ${effectNames[i]} failed for user ${payload.userId}:`,
-        (results[i] as PromiseRejectedResult).reason
+      postbackLogger.error(
+        { err: (results[i] as PromiseRejectedResult).reason, effect: effectNames[i], userId: payload.userId },
+        "Side effect failed"
       );
     }
   }
