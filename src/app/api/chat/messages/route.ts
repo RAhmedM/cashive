@@ -37,6 +37,8 @@ export const GET = withAuth(async (request, user) => {
       const cached = await redis.lrange(`chat:${room}:messages`, 0, limit - 1);
       if (cached.length > 0) {
         const messages = cached.map((m) => JSON.parse(m) as ChatMessagePayload);
+        // Redis LPUSH stores newest first — reverse to get chronological order
+        messages.reverse();
         return jsonOk({
           messages,
           hasMore: cached.length === limit,

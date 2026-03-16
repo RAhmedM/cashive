@@ -8,14 +8,12 @@
  *
  * Also exposes event-specific state that many components need:
  *   - onlineCount: number of users in the chat room
- *   - unreadNotifications: real-time unread count
  *
  * Components use the `useSocket()` hook to access the socket and
  * subscribe to specific events via `useSocketEvent()`.
  */
 import React, {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -51,29 +49,39 @@ const SocketContext = createContext<SocketContextValue>({
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const [socket, setSocket] = useState<TypedSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [onlineCount, setOnlineCount] = useState(0);
-  const socketRef = useRef<TypedSocket | null>(null);
+  // Track the user id to detect user changes without reconnecting unnecessarily
+  const userIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Only connect when authenticated
     if (!user) {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
         setConnected(false);
         setOnlineCount(0);
+        userIdRef.current = null;
       }
       return;
     }
 
-    // Already connected
-    if (socketRef.current?.connected) return;
+    // Already connected for this user
+    if (socket?.connected && userIdRef.current === user.id) return;
+
+    // If user changed, disconnect old socket first
+    if (socket && userIdRef.current !== user.id) {
+      socket.disconnect();
+    }
+
+    userIdRef.current = user.id;
 
     const socketUrl =
       process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:3001";
 
-    const socket: TypedSocket = io(socketUrl, {
+    const newSocket: TypedSocket = io(socketUrl, {
       withCredentials: true,
       transports: ["websocket", "polling"],
       reconnection: true,
@@ -82,47 +90,43 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       reconnectionAttempts: Infinity,
     });
 
-    socketRef.current = socket;
+    setSocket(newSocket);
 
-    socket.on("connect", () => {
-      console.log("[Socket] Connected");
+    newSocket.on("connect", () => {
       setConnected(true);
 
       // Request initial online count
-      socket.emit("chat:online" as any, (count: number) => {
+      (newSocket as any).emit("chat:online", (count: number) => {
         setOnlineCount(count);
       });
     });
 
-    socket.on("disconnect", (reason) => {
-      console.log("[Socket] Disconnected:", reason);
+    newSocket.on("disconnect", () => {
       setConnected(false);
     });
 
-    socket.on("connect_error", (err) => {
-      console.warn("[Socket] Connection error:", err.message);
+    newSocket.on("connect_error", () => {
       setConnected(false);
     });
 
     // Track online count updates
-    socket.on(SERVER_EVENTS.CHAT_ONLINE_COUNT, (count: number) => {
+    (newSocket as any).on(SERVER_EVENTS.CHAT_ONLINE_COUNT, (count: number) => {
       setOnlineCount(count);
     });
 
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
+      newSocket.disconnect();
+      setSocket(null);
       setConnected(false);
+      userIdRef.current = null;
     };
-  }, [user]);
+    // We intentionally only depend on user identity, not on the socket itself
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const value = React.useMemo(
-    () => ({
-      socket: socketRef.current,
-      connected,
-      onlineCount,
-    }),
-    [connected, onlineCount]
+    () => ({ socket, connected, onlineCount }),
+    [socket, connected, onlineCount]
   );
 
   return (
