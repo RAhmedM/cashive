@@ -33,10 +33,11 @@ export const POST = withAuth(async (request, user, params) => {
     },
   });
 
-  // Update ticket updatedAt, and reopen if waiting on user
+  // Update ticket updatedAt, and reopen if waiting on user or resolved
   const statusUpdate: Record<string, unknown> = { updatedAt: new Date() };
-  if (ticket.status === "WAITING_USER") {
+  if (ticket.status === "WAITING_USER" || ticket.status === "RESOLVED") {
     statusUpdate.status = "OPEN";
+    statusUpdate.resolvedAt = null;
   }
 
   await db.supportTicket.update({

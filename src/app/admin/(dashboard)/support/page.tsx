@@ -172,9 +172,11 @@ function PriorityIndicator({ priority }: { priority: string }) {
 function TicketList({
   onSelect,
   selectedId,
+  refreshKey,
 }: {
   onSelect: (id: string) => void;
   selectedId: string | null;
+  refreshKey: number;
 }) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [total, setTotal] = useState(0);
@@ -209,7 +211,7 @@ function TicketList({
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, priorityFilter, categoryFilter, mineOnly, page]);
+  }, [statusFilter, priorityFilter, categoryFilter, mineOnly, page, refreshKey]);
 
   useEffect(() => {
     fetchTickets();
@@ -367,9 +369,11 @@ function TicketList({
 function TicketDetail({
   ticketId,
   onBack,
+  onTicketUpdated,
 }: {
   ticketId: string;
   onBack: () => void;
+  onTicketUpdated?: () => void;
 }) {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<TicketMessage[]>([]);
@@ -410,6 +414,42 @@ function TicketDetail({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Poll for new messages every 5 seconds
+  useEffect(() => {
+    if (!ticketId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/admin/support/${ticketId}`, {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        const newMessages: TicketMessage[] = json.ticket.messages ?? [];
+        setMessages((prev) => {
+          if (newMessages.length === prev.length) return prev;
+          return newMessages;
+        });
+        // Also update ticket metadata (status may have changed)
+        setTicket((prev) => {
+          if (!prev) return json.ticket;
+          if (
+            prev.status !== json.ticket.status ||
+            prev.priority !== json.ticket.priority ||
+            prev.assignedTo !== json.ticket.assignedTo
+          ) {
+            return json.ticket;
+          }
+          return prev;
+        });
+      } catch {
+        // Silently fail
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [ticketId]);
+
   async function handleSendReply() {
     if (!reply.trim() || sending) return;
     setSending(true);
@@ -426,6 +466,7 @@ function TicketDetail({
         setReply("");
         // Refresh ticket to get updated status
         fetchTicket();
+        onTicketUpdated?.();
       }
     } catch {}
     setSending(false);
@@ -442,6 +483,7 @@ function TicketDetail({
       });
       if (res.ok) {
         fetchTicket();
+        onTicketUpdated?.();
       }
     } catch {}
     setUpdating(false);
@@ -686,6 +728,11 @@ function TicketDetail({
 
 export default function SupportPage() {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [listRefreshKey, setListRefreshKey] = useState(0);
+
+  const refreshList = useCallback(() => {
+    setListRefreshKey((k) => k + 1);
+  }, []);
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
@@ -698,6 +745,7 @@ export default function SupportPage() {
         <TicketList
           onSelect={setSelectedTicketId}
           selectedId={selectedTicketId}
+          refreshKey={listRefreshKey}
         />
       </div>
 
@@ -711,6 +759,7 @@ export default function SupportPage() {
           <TicketDetail
             ticketId={selectedTicketId}
             onBack={() => setSelectedTicketId(null)}
+            onTicketUpdated={refreshList}
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-[#4A4D57]">
