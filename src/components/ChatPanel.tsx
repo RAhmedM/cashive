@@ -710,6 +710,30 @@ function SupportTab() {
     }
   }, [view, activeTicket?.messages?.length]);
 
+  // Poll for new messages while viewing a ticket detail
+  useEffect(() => {
+    if (view !== "ticket-detail" || !activeTicket) return;
+
+    const ticketId = activeTicket.id;
+    const interval = setInterval(async () => {
+      try {
+        const data = await api.get<{ ticket: TicketDetail }>(
+          `/api/user/me/support/${ticketId}`
+        );
+        setActiveTicket((prev) => {
+          if (!prev || prev.id !== ticketId) return prev;
+          // Only update if message count changed
+          if (data.ticket.messages.length === prev.messages.length) return prev;
+          return data.ticket;
+        });
+      } catch {
+        // Silently fail
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [view, activeTicket?.id]);
+
   // ---- Submit new ticket ----
 
   const handleSubmit = async () => {
