@@ -49,34 +49,32 @@ const SocketContext = createContext<SocketContextValue>({
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [socket, setSocket] = useState<TypedSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [onlineCount, setOnlineCount] = useState(0);
-  // Track the user id to detect user changes without reconnecting unnecessarily
-  const userIdRef = useRef<string | null>(null);
+  const socketRef = useRef<TypedSocket | null>(null);
+  // Expose socket via state so context consumers re-render when it changes
+  const [socketState, setSocketState] = useState<TypedSocket | null>(null);
 
   useEffect(() => {
     // Only connect when authenticated
     if (!user) {
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+        setSocketState(null);
         setConnected(false);
         setOnlineCount(0);
-        userIdRef.current = null;
       }
       return;
     }
 
     // Already connected for this user
-    if (socket?.connected && userIdRef.current === user.id) return;
+    if (socketRef.current?.connected) return;
 
-    // If user changed, disconnect old socket first
-    if (socket && userIdRef.current !== user.id) {
-      socket.disconnect();
+    // Disconnect stale socket if any
+    if (socketRef.current) {
+      socketRef.current.disconnect();
     }
-
-    userIdRef.current = user.id;
 
     const socketUrl =
       process.env.NEXT_PUBLIC_SOCKET_URL ?? "http://localhost:3001";
@@ -90,7 +88,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       reconnectionAttempts: Infinity,
     });
 
-    setSocket(newSocket);
+    socketRef.current = newSocket;
+    setSocketState(newSocket);
 
     newSocket.on("connect", () => {
       setConnected(true);
@@ -116,17 +115,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       newSocket.disconnect();
-      setSocket(null);
+      socketRef.current = null;
+      setSocketState(null);
       setConnected(false);
-      userIdRef.current = null;
     };
-    // We intentionally only depend on user identity, not on the socket itself
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const value = React.useMemo(
-    () => ({ socket, connected, onlineCount }),
-    [socket, connected, onlineCount]
+    () => ({ socket: socketState, connected, onlineCount }),
+    [socketState, connected, onlineCount]
   );
 
   return (
